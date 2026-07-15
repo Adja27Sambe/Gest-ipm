@@ -7,6 +7,9 @@ sql_file_path = '/Users/adjasambe/Downloads/imp_db.sql'
 with open(sql_file_path, 'r', encoding='utf-8') as f:
     sql_content = f.read()
 
+# Strip SQL comments
+sql_content = re.sub(r'--.*', '', sql_content)
+
 # Pattern to find CREATE TABLE blocks
 table_pattern = re.compile(r'CREATE\s+TABLE\s+(\w+)\s*\((.*?)\);', re.IGNORECASE | re.DOTALL)
 tables = table_pattern.findall(sql_content)
@@ -164,7 +167,10 @@ for idx, table_key in enumerate(sorted_tables):
         elif ctype == 'decimal' and size_str:
              mig_content += f"            $table->decimal('{cname}'{size_str})"
         else:
-             mig_content += f"            $table->{ctype}('{cname}')"
+             if col.get('references') and ctype == 'integer':
+                 mig_content += f"            $table->unsignedBigInteger('{cname}')"
+             else:
+                 mig_content += f"            $table->{ctype}('{cname}')"
              
         if col['nullable']: mig_content += "->nullable()"
         if col['unique']: mig_content += "->unique()"

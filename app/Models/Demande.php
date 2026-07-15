@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use App\Observers\DemandeObserver;
 
+#[ObservedBy(DemandeObserver::class)]
 class Demande extends Model
 {
     protected $table = 'demande';

@@ -12,7 +12,7 @@ class HistoriqueMedical extends Model
 
     public function prestataire()
     {
-        return $this->belongsTo(Prestataire::class, '--');
+        return $this->belongsTo(Prestataire::class, 'id_prestataire');
     }
 
 }
