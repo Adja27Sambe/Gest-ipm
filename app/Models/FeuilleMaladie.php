@@ -12,7 +12,6 @@ class FeuilleMaladie extends Model
 
     public function demande()
     {
-        return $this->belongsTo(Demande::class, 'id_demande');
+        return $this->belongsTo(Demande::class, 'id_demande', 'id_demande');
     }
-
 }

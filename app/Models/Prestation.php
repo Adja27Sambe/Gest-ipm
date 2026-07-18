@@ -6,23 +6,39 @@ use Illuminate\Database\Eloquent\Model;
 
 class Prestation extends Model
 {
+    use \App\Traits\Auditable;
+
     protected $table = 'prestation';
     protected $primaryKey = 'id_prestation';
+    
+    // Pour l'observer, on s'assure qu'Eloquent lève bien les events même sans timestamps par défaut,
+    // Mais on va ajouter les timestamps dans une migration.
     protected $guarded = [];
+
+    protected $casts = [
+        'date_prestation' => 'date',
+        'montant' => 'decimal:2',
+        'taux_prise_charge' => 'decimal:2',
+        'reste_a_charge' => 'decimal:2',
+    ];
 
     public function typePrestation()
     {
-        return $this->belongsTo(TypePrestation::class, 'id_type_prestation');
+        return $this->belongsTo(TypePrestation::class, 'id_type_prestation', 'id_type_prestation');
     }
 
     public function prestataire()
     {
-        return $this->belongsTo(Prestataire::class, 'id_prestataire');
+        return $this->belongsTo(Prestataire::class, 'id_prestataire', 'id_prestataire');
     }
 
     public function demande()
     {
-        return $this->belongsTo(Demande::class, 'id_demande');
+        return $this->belongsTo(Demande::class, 'id_demande', 'id_demande');
     }
 
+    public function factures()
+    {
+        return $this->belongsToMany(Facture::class, 'facture_prestation', 'id_prestation', 'id_facture')->withTimestamps();
+    }
 }

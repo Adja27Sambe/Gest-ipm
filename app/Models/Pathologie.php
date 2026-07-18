@@ -8,6 +8,6 @@ class Pathologie extends Model
 {
     protected $table = 'pathologie';
     protected $primaryKey = 'id_pathologie';
+    public $timestamps = false;
     protected $guarded = [];
-
 }

@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy(EntrepriseObserver::class)]
 class Entreprise extends Model
 {
+    use \App\Traits\Auditable;
+
     protected $table = 'entreprise';
     protected $primaryKey = 'id_entreprise';
     protected $guarded = [];
@@ -22,5 +24,10 @@ class Entreprise extends Model
     public function relances(): HasMany
     {
         return $this->hasMany(Relance::class, 'id_entreprise');
+    }
+
+    public function cotisations(): HasMany
+    {
+        return $this->hasMany(Cotisation::class, 'id_entreprise');
     }
 }

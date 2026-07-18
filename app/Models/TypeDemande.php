@@ -10,4 +10,8 @@ class TypeDemande extends Model
     protected $primaryKey = 'id_type_demande';
     protected $guarded = [];
 
+    public function demandes()
+    {
+        return $this->hasMany(Demande::class, 'id_type_demande', 'id_type_demande');
+    }
 }

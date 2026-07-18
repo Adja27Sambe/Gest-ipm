@@ -10,14 +10,17 @@ class ValidationDevis extends Model
     protected $primaryKey = 'id_validation';
     protected $guarded = [];
 
+    protected $casts = [
+        'date_validation' => 'date',
+    ];
+
     public function devis()
     {
-        return $this->belongsTo(Devis::class, 'id_devis');
+        return $this->belongsTo(Devis::class, 'id_devis', 'id_devis');
     }
 
     public function utilisateur()
     {
-        return $this->belongsTo(Utilisateur::class, 'id_utilisateur');
+        return $this->belongsTo(Utilisateur::class, 'id_utilisateur', 'id_utilisateur');
     }
-
 }

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CarteAssure extends Model
 {
@@ -10,7 +11,19 @@ class CarteAssure extends Model
     protected $primaryKey = 'id_carte';
     protected $guarded = [];
 
-    public function salarie()
+    // Constantes de statut
+    public const STATUT_ACTIF = 'actif';
+    public const STATUT_ANNULEE = 'annulée';
+
+    /**
+     * Scope a query to only include active cards.
+     */
+    public function scopeActives($query)
+    {
+        return $query->where('statut', self::STATUT_ACTIF);
+    }
+
+    public function salarie(): BelongsTo
     {
         return $this->belongsTo(Salarie::class, 'id_salarie');
     }

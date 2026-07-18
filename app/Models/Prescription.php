@@ -12,7 +12,6 @@ class Prescription extends Model
 
     public function historiqueMedical()
     {
-        return $this->belongsTo(HistoriqueMedical::class, 'id_historique_medical');
+        return $this->belongsTo(HistoriqueMedical::class, 'id_historique_medical', 'id_historique_medical');
     }
-
 }
