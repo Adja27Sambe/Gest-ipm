@@ -15,7 +15,8 @@ class ParametreCouvertureController extends Controller
      */
     public function index()
     {
-        $parametres = ParametreCouverture::with('typePrestation')->paginate(15);
+        $perPage = request('per_page', 5);
+        $parametres = ParametreCouverture::with('typePrestation')->latest('id_parametre_couverture')->paginate($perPage)->withQueryString();
         return view('parametres-couverture.index', compact('parametres'));
     }
 

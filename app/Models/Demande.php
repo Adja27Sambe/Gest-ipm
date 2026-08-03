@@ -48,8 +48,42 @@ class Demande extends Model
         return $this->hasOne(LettreGarantie::class, 'id_demande', 'id_demande');
     }
 
-    public function prestataire()
+    public function praticien()
     {
-        return $this->belongsTo(Prestataire::class, 'id_prestataire', 'id_prestataire');
+        return $this->belongsTo(Praticien::class, 'id_praticien', 'id_praticien');
+    }
+
+    public function pharmacie()
+    {
+        return $this->belongsTo(Pharmacie::class, 'id_pharmacie', 'id_pharmacie');
+    }
+
+    public function typePrestation()
+    {
+        return $this->belongsTo(TypePrestation::class, 'id_type_prestation', 'id_type_prestation');
+    }
+
+    /**
+     * Génère un numéro de demande unique (ex: BC2026070001).
+     *
+     * @param string $prefix
+     * @param string $column
+     * @return string
+     */
+    public static function generateNumber($prefix = 'DEM', $column = 'numero_demande')
+    {
+        $yearMonth = date('Ym');
+        $lastDemande = self::where($column, 'like', $prefix . $yearMonth . '%')
+                           ->orderBy('id_demande', 'desc')
+                           ->first();
+                           
+        if (!$lastDemande || empty($lastDemande->{$column})) {
+            $sequence = 1;
+        } else {
+            $lastNumber = str_replace($prefix . $yearMonth, '', $lastDemande->{$column});
+            $sequence = intval($lastNumber) + 1;
+        }
+
+        return $prefix . $yearMonth . str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 }

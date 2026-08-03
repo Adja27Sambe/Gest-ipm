@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\PrestataireRechercheController;
 use App\Http\Controllers\Api\DemandeApiController;
-use App\Http\Controllers\Api\DevisApiController;
 use App\Http\Controllers\Api\PrestationApiController;
 use App\Http\Controllers\Api\DossierMedicalApiController;
 use App\Http\Controllers\Api\FacturationApiController;
@@ -51,11 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // API Demandes (Bons, Feuilles, Lettres)
     Route::post('/demandes', [DemandeApiController::class, 'store']);
     Route::get('/demandes/history', [DemandeApiController::class, 'history']);
-    Route::get('/demandes/{id}/pdf', [DemandeApiController::class, 'generatePdf']);
 
-    // API Devis
-    Route::post('/devis/{id}/transition', [DevisApiController::class, 'transition']);
-    Route::get('/devis/stats', [DevisApiController::class, 'stats']);
 
     // API Prestations
     Route::post('/prestations', [PrestationApiController::class, 'store']);

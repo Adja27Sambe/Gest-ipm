@@ -22,7 +22,8 @@ class PieceJointeController extends Controller
             $query->where('id_categorie', $request->id_categorie);
         }
 
-        $pieces = $query->paginate(20);
+        $perPage = $request->input('per_page', 5);
+        $pieces = $query->paginate($perPage)->withQueryString();
         $categories = CategorieDocument::orderBy('libelle')->get();
 
         return view('pieces-jointes.index', compact('pieces', 'categories'));

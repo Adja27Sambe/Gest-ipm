@@ -27,15 +27,33 @@
     </style>
 </head>
 <body>
-    <table class="header-table">
+    @php
+        $logoPath = public_path('logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
+    @endphp
+   <table class="header-table">
         <tr>
             <td>
-                <div class="logo-text">GEST-IPM</div>
-                <div style="font-size: 11px; color: #777;">Institution de Prévoyance Maladie</div>
+                @if($logoBase64)
+                    <img src="{{ $logoBase64 }}" alt="Logo IPM" style="max-height: 45px; object-fit: contain;">
+                @else
+                    <div class="logo-text">IPM Mbaarum Koolute</div>
+                @endif
+               
+                <div style="font-size: 11px; color: #777; margin-top: 5px;">Institution de Prévoyance Maladie
+                     <br>
+                INTER-ENTREPRISES <BR>
+            IMMEUBLE 7 - CITÉ DE L'ÉMERGENCE ADDOHA
+        TEL:33 822 37 34</BR>
+                </div>
             </td>
             <td class="company-info">
                 Date d'émission : <strong>{{ \Carbon\Carbon::parse($demande->date_demande)->format('d/m/Y') }}</strong><br>
-                Service Médical
+                Date limite de Validité : <strong>{{ $demande->bonCommande->date_validite ? \Carbon\Carbon::parse($demande->bonCommande->date_validite)->format('d/m/Y') : 'N/A' }}</strong><br>
             </td>
         </tr>
     </table>
@@ -46,25 +64,25 @@
     </div>
     
     <div class="section-title">Informations du Bénéficiaire</div>
-    <table class="info-section">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
         <tr>
-            <th>Patient concerné</th>
-            <td>
+            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 28%; background-color: #f8f9fa; vertical-align: middle;">
+                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Matricule Salarié</span>
+                <span style="font-size: 18px; font-weight: bold; color: #0056b3; letter-spacing: 1px;">{{ $demande->salarie->matricule ?? 'N/A' }}</span>
+            </td>
+            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 38%; vertical-align: middle;">
+                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Patient concerné</span>
                 @if($demande->ayantDroit)
-                    <strong>{{ $demande->ayantDroit->prenom }} {{ $demande->ayantDroit->nom }}</strong><br>
+                    <strong style="font-size: 14px;">{{ $demande->ayantDroit->prenom }} {{ $demande->ayantDroit->nom }}</strong><br>
                     <span style="font-size: 11px; color: #666;">(Ayant-droit de {{ $demande->salarie->prenom }} {{ $demande->salarie->nom }})</span>
                 @else
-                    <strong>{{ $demande->salarie->prenom }} {{ $demande->salarie->nom }}</strong>
+                    <strong style="font-size: 14px;">{{ $demande->salarie->prenom }} {{ $demande->salarie->nom }}</strong>
                 @endif
             </td>
-        </tr>
-        <tr>
-            <th>Matricule Salarié</th>
-            <td>{{ $demande->salarie->matricule ?? 'Non spécifié' }}</td>
-        </tr>
-        <tr>
-            <th>Entreprise</th>
-            <td>{{ $demande->salarie->entreprise->raison_sociale ?? 'Non spécifiée' }}</td>
+            <td style="padding: 12px 15px; width: 34%; vertical-align: middle;">
+                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Entreprise</span>
+                <strong style="font-size: 13px;">{{ $demande->salarie->entreprise->raison_sociale ?? 'Non spécifiée' }}</strong>
+            </td>
         </tr>
     </table>
 
@@ -72,7 +90,7 @@
     <table class="info-section">
         <tr>
             <th>Praticien / Pharmacie / Opticien</th>
-            <td><strong>{{ $demande->prestataire->nom_raison_sociale ?? 'Non spécifié' }}</strong></td>
+            <td><strong>{{ $demande->pharmacie->nom ?? 'Non spécifié' }}</strong></td>
         </tr>
         <tr>
             <th>Date de l'ordonnance</th>
@@ -82,28 +100,38 @@
             <th>Nombre d'articles prescrits</th>
             <td>{{ $demande->bonCommande->nombre_articles ?? '1' }}</td>
         </tr>
-        <tr>
-            <th>Taux de Prise en Charge</th>
-            <td><strong>{{ $demande->bonCommande->taux_prise_charge ?? '0' }}%</strong></td>
-        </tr>
-        <tr>
-            <th>Date limite de Validité</th>
-            <td>{{ $demande->bonCommande->date_validite ? \Carbon\Carbon::parse($demande->bonCommande->date_validite)->format('d/m/Y') : 'N/A' }}</td>
-        </tr>
-        <tr>
-            <th>Motif / Observations</th>
-            <td>{{ $demande->motif ?? 'Néant' }}</td>
-        </tr>
+
+    </table>
+
+    <div class="section-title">Articles Prescrits</div>
+    @php $nbArticles = intval($demande->bonCommande->nombre_articles ?? 1); @endphp
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <thead>
+            <tr>
+                <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; text-align: center; width: 5%;">#</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; text-align: left; width: 45%;">Désignation de l'article</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; text-align: center; width: 15%;">Quantité</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; text-align: right; width: 20%;">Prix Unitaire</th>
+                <th style="border: 1px solid #ddd; padding: 8px; background-color: #f8f9fa; text-align: right; width: 15%;">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for ($i = 1; $i <= $nbArticles; $i++)
+            <tr style="height: 32px;">
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #aaa;">{{ $i }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+                <td style="border: 1px solid #ddd; padding: 8px;"></td>
+            </tr>
+            @endfor
+        </tbody>
     </table>
 
     <table class="signatures">
         <tr>
-            <td>
-                <strong>Le Prestataire</strong>
-                <div class="signature-line"></div>
-            </td>
-            <td>
-                <strong>Le Médecin Conseil / IPM</strong>
+            <td style="text-align: center; width: 100%;">
+                <strong>Le Gérant IPM</strong>
                 <div class="signature-line"></div>
             </td>
         </tr>

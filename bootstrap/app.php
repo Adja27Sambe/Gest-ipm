@@ -15,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
+
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            if ($request->is('espace-beneficiaire') || $request->is('espace-beneficiaire/*')) {
+                return route('participant.login');
+            }
+            return route('login');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

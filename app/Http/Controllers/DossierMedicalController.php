@@ -59,7 +59,7 @@ class DossierMedicalController extends Controller
             ->orderBy('date_consultation', 'desc')
             ->get();
 
-        $prestataires = Prestataire::select('id_prestataire', 'nom_raison_sociale')->get();
+        $prestataires = Prestataire::select('id_prestataire', 'nom')->get();
         $pathologies = Pathologie::select('id_pathologie', 'libelle')->get();
 
         return view('dossier-medical.show', compact('beneficiaire', 'type', 'historique', 'prestataires', 'pathologies'));

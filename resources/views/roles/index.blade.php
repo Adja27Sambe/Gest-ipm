@@ -37,6 +37,28 @@
         </div>
     @endif
 
+    <div class="card border-0 shadow-sm mb-4 rounded-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ route('roles.index') }}" class="row g-3 align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique rôles (nom, permissions)..." value="{{ request('search') }}" autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-center justify-content-end">
+                    <label for="per_page" class="me-2 text-muted small fw-medium text-nowrap">Afficher :</label>
+                    <select name="per_page" id="per_page" class="form-select bg-light border-0" style="width: 100px;" onchange="this.form.submit()">
+                        <option value="5" {{ request('per_page', 5) == 5 ? 'selected' : '' }}>5 / page</option>
+                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10 / page</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / page</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / page</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -68,18 +90,20 @@
                                 <span class="badge bg-secondary rounded-pill">{{ $role->utilisateurs->count() }}</span>
                             </td>
                             <td class="px-4 py-3 text-end">
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-circle me-1" 
-                                    data-bs-toggle="modal" data-bs-target="#editRoleModal{{ $role->id_role }}" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                
-                                <form action="{{ route('roles.destroy', $role->id_role) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" title="Supprimer" {{ $role->utilisateurs->count() > 0 ? 'disabled' : '' }}>
-                                        <i class="bi bi-trash"></i>
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Actions rôle">
+                                    <button type="button" class="btn btn-outline-warning" 
+                                        data-bs-toggle="modal" data-bs-target="#editRoleModal{{ $role->id_role }}" title="Modifier">
+                                        <i class="bi bi-pencil"></i>
                                     </button>
-                                </form>
+                                    
+                                    <form action="{{ route('roles.destroy', $role->id_role) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce rôle ?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger border-start-0" title="Supprimer" {{ $role->utilisateurs->count() > 0 ? 'disabled' : '' }}>
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
 
@@ -128,13 +152,22 @@
                     @empty
                         <tr>
                             <td colspan="4" class="text-center py-5 text-muted">
-                                <i class="bi bi-shield-x fs-1 d-block mb-3"></i>
+                                <i class="bi bi-shield-x fs-1 d-block mb-3 opacity-50"></i>
                                 Aucun rôle trouvé.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted small">
+            Affichage de {{ $roles->firstItem() ?? 0 }} à {{ $roles->lastItem() ?? 0 }} sur {{ $roles->total() }} rôles
+        </div>
+        <div>
+            {{ $roles->links('pagination::bootstrap-5') }}
         </div>
     </div>
 </div>

@@ -13,16 +13,38 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card border-0 shadow-sm mb-4 rounded-4">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ route('prestations.index') }}" class="row g-3 align-items-center">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique prestations (bénéficiaire, acte, prestataire)..." value="{{ request('search') }}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-md-4 d-flex align-items-center justify-content-end">
+                <label for="per_page" class="me-2 text-muted small fw-medium text-nowrap">Afficher :</label>
+                <select name="per_page" id="per_page" class="form-select bg-light border-0" style="width: 100px;" onchange="this.form.submit()">
+                    <option value="5" {{ request('per_page', 5) == 5 ? 'selected' : '' }}>5 / page</option>
+                    <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10 / page</option>
+                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / page</option>
+                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / page</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover align-middle mb-0">
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Date</th>
                         <th>Type d'Acte</th>
-                        <th>Bénéficiaire</th>
-                        <th>Prestataire</th>
+                        <th>Bénéficiaire (Participant/Ayant-droit)</th>
+                        <th>Partenaire de Santé (Prestataire)</th>
                         <th class="text-end">Montant Total</th>
                         <th class="text-end text-success">Prise en Charge</th>
                         <th class="text-end text-danger pe-4">Reste à Charge</th>
@@ -42,9 +64,12 @@
                         $pec = $p->montant - $p->reste_a_charge;
                     @endphp
                     <tr>
-                        <td class="ps-4 fw-medium">{{ $p->date_prestation ? $p->date_prestation->format('d/m/Y') : '-' }}</td>
+                        <td class="ps-4 fw-medium text-nowrap">
+                            <i class="bi bi-calendar-event me-1 text-muted"></i>
+                            {{ $p->date_prestation ? $p->date_prestation->format('d/m/Y') : '-' }}
+                        </td>
                         <td>
-                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">
+                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1">
                                 {{ $p->typePrestation->libelle ?? 'Inconnu' }}
                             </span>
                         </td>
@@ -68,8 +93,13 @@
     </div>
 </div>
 
-<div class="d-flex justify-content-center mt-4">
-    {{ $prestations->links('pagination::bootstrap-5') }}
+<div class="d-flex justify-content-between align-items-center mt-4">
+    <div class="text-muted small">
+        Affichage de {{ $prestations->firstItem() ?? 0 }} à {{ $prestations->lastItem() ?? 0 }} sur {{ $prestations->total() }} prestations
+    </div>
+    <div>
+        {{ $prestations->links('pagination::bootstrap-5') }}
+    </div>
 </div>
 @endsection
 

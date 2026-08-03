@@ -14,7 +14,8 @@ class MediaController extends Controller
      */
     public function index()
     {
-        $medias = Media::with('utilisateur')->latest()->paginate(24);
+        $perPage = request('per_page', 5);
+        $medias = Media::with('utilisateur')->latest('id_media')->paginate($perPage)->withQueryString();
         return view('medias.index', compact('medias'));
     }
 

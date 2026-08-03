@@ -13,19 +13,23 @@ class CotisationController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->input('per_page', 5);
+
         // Cotisations Entreprises
         $cotisationsEntreprises = Cotisation::with('entreprise')
             ->whereNotNull('id_entreprise')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($perPage, ['*'], 'page_entreprises')
+            ->withQueryString();
 
         // Cotisations Salariés
         $cotisationsSalaries = Cotisation::with(['salarie', 'salarie.entreprise'])
             ->whereNotNull('id_salarie')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($perPage, ['*'], 'page_salaries')
+            ->withQueryString();
 
         return view('cotisations.index', compact('cotisationsEntreprises', 'cotisationsSalaries'));
     }

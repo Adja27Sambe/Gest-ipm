@@ -16,9 +16,16 @@
     <div class="card-body p-4">
         <form action="{{ route('audit.index') }}" method="GET" class="row g-3">
             <div class="col-md-3">
+                <label class="form-label text-muted small fw-bold text-uppercase">Recherche dynamique</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Description, utilisateur, IP..." value="{{ request('search') }}" autocomplete="off">
+                </div>
+            </div>
+            <div class="col-md-2">
                 <label class="form-label text-muted small fw-bold text-uppercase">Utilisateur</label>
                 <select name="id_utilisateur" class="form-select bg-light border-0 shadow-none">
-                    <option value="">Tous les utilisateurs</option>
+                    <option value="">Tous</option>
                     @foreach($utilisateurs as $user)
                         <option value="{{ $user->id_utilisateur }}" {{ request('id_utilisateur') == $user->id_utilisateur ? 'selected' : '' }}>
                             {{ $user->login }}
@@ -57,10 +64,14 @@
                 <input type="date" name="date_fin" class="form-control bg-light border-0 shadow-none" value="{{ request('date_fin') }}">
             </div>
 
-            <div class="col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary w-100 rounded-3 shadow-sm">
-                    <i class="bi bi-search"></i>
-                </button>
+            <div class="col-md-1">
+                <label class="form-label text-muted small fw-bold text-uppercase">Afficher</label>
+                <select name="per_page" id="per_page" class="form-select bg-light border-0 shadow-none" onchange="this.form.submit()">
+                    <option value="5" {{ request('per_page', 5) == 5 ? 'selected' : '' }}>5</option>
+                    <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
+                    <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                </select>
             </div>
         </form>
     </div>
@@ -175,8 +186,12 @@
     </div>
 </div>
 
-<div class="d-flex justify-content-center mt-4">
-    {{ $historiques->links() }}
+<div class="d-flex justify-content-between align-items-center mt-4">
+    <div class="text-muted small">
+        Affichage de {{ $historiques->firstItem() ?? 0 }} à {{ $historiques->lastItem() ?? 0 }} sur {{ $historiques->total() }} entrées d'audit
+    </div>
+    <div>
+        {{ $historiques->links('pagination::bootstrap-5') }}
+    </div>
 </div>
-
 @endsection

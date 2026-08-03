@@ -94,6 +94,6 @@ class DemandeApiController extends Controller
         }
 
         $pdf = Pdf::loadView($view, compact('demande'));
-        return $pdf->download($fileName);
+        return $pdf->stream($fileName);
     }
 }

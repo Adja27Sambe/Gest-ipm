@@ -25,7 +25,7 @@
                 <tbody>
                     @foreach($salaries as $salarie)
                         <!-- Salarié -->
-                        <tr>
+                        <tr class="clickable-row" data-href="{{ route('dossier-medical.show', ['type' => 'salarie', 'id' => $salarie->id_salarie]) }}">
                             <td>{{ $salarie->id_salarie }}</td>
                             <td><span class="badge bg-primary">Salarié</span></td>
                             <td>{{ $salarie->prenom }} {{ $salarie->nom }}</td>
@@ -38,7 +38,7 @@
                         </tr>
                         <!-- Ayants Droit du Salarié -->
                         @foreach($salarie->ayantsDroit as $ad)
-                            <tr>
+                            <tr class="clickable-row" data-href="{{ route('dossier-medical.show', ['type' => 'ayant_droit', 'id' => $ad->id_ayant_droit]) }}">
                                 <td>{{ $ad->id_ayant_droit }}</td>
                                 <td><span class="badge bg-secondary">Ayant Droit ({{ $ad->lien_parente }})</span></td>
                                 <td>{{ $ad->prenom }} {{ $ad->nom }}</td>

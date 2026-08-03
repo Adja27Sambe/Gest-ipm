@@ -17,8 +17,9 @@
 
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <label for="code_adherent" class="form-label fw-medium text-muted">Code adhérent</label>
-                            <input type="text" class="form-control @error('code_adherent') is-invalid @enderror" id="code_adherent" name="code_adherent" value="{{ old('code_adherent') }}" placeholder="Optionnel">
+                            <label for="code_adherent" class="form-label fw-medium text-muted">Code adhérent <span class="badge bg-light text-primary border ms-1">Auto</span></label>
+                            <input type="text" class="form-control @error('code_adherent') is-invalid @enderror" id="code_adherent" name="code_adherent" value="{{ old('code_adherent', \App\Observers\EntrepriseObserver::generateCodeAdherent()) }}" placeholder="Généré automatiquement (ex: ADH001)">
+                            <div class="form-text text-muted">Généré automatiquement (ex: ADH001), vous pouvez le personnaliser si nécessaire.</div>
                             @error('code_adherent') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">

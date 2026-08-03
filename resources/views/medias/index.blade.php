@@ -19,6 +19,28 @@
         </div>
     @endif
 
+    <div class="card border-0 shadow-sm mb-4 rounded-4">
+        <div class="card-body p-3">
+            <form method="GET" action="{{ route('medias.index') }}" class="row g-3 align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique médias (titre, type)..." value="{{ request('search') }}" autocomplete="off">
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-center justify-content-end">
+                    <label for="per_page" class="me-2 text-muted small fw-medium text-nowrap">Afficher :</label>
+                    <select name="per_page" id="per_page" class="form-select bg-light border-0" style="width: 100px;" onchange="this.form.submit()">
+                        <option value="5" {{ request('per_page', 5) == 5 ? 'selected' : '' }}>5 / page</option>
+                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10 / page</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / page</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / page</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="row g-4">
         @forelse($medias as $media)
             <div class="col-6 col-md-4 col-lg-3">
@@ -79,8 +101,13 @@
         @endforelse
     </div>
 
-    <div class="mt-4">
-        {{ $medias->links() }}
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted small">
+            Affichage de {{ $medias->firstItem() ?? 0 }} à {{ $medias->lastItem() ?? 0 }} sur {{ $medias->total() }} médias
+        </div>
+        <div>
+            {{ $medias->links('pagination::bootstrap-5') }}
+        </div>
     </div>
 </div>
 @endsection

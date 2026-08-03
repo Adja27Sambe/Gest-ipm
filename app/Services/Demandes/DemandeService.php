@@ -19,8 +19,6 @@ class DemandeService
 
     public function __construct()
     {
-        // Enregistrer les stratégies par code ou nom de type de demande
-        // Par exemple: 'BC' pour Bon de Commande, 'FM' pour Feuille de Maladie, 'LG' pour Lettre de Garantie
         $this->strategies = [
             'BC' => new BonCommandeStrategy(),
             'FM' => new FeuilleMaladieStrategy(),
@@ -34,7 +32,7 @@ class DemandeService
     public function createDemande(array $data)
     {
         return DB::transaction(function () use ($data) {
-            // Validation Ayant Droit (Limite d'âge < 21 ans)
+            // Validation Ayant Droit
             if (!empty($data['id_ayant_droit'])) {
                 $ayantDroit = AyantDroit::findOrFail($data['id_ayant_droit']);
                 if (!$ayantDroit->isEligible()) {
@@ -42,7 +40,6 @@ class DemandeService
                 }
             }
 
-            // Récupérer le type de demande pour identifier la stratégie
             $typeDemande = TypeDemande::findOrFail($data['id_type_demande']);
             $strategyCode = $this->getStrategyCodeFromLibelle($typeDemande->libelle);
 
@@ -52,19 +49,31 @@ class DemandeService
 
             $strategy = $this->strategies[$strategyCode];
 
-            // Validation spécifique de la stratégie
+            // Validation spécifique (Prestataire, Type Prestation, etc.)
             $strategy->validateSpecifics($data);
 
-            // Création de la Demande principale
-            $demande = Demande::create([
-                'date_demande' => $data['date_demande'] ?? now(),
+            // Création de la Demande centrale
+            // Note: numero_demande est géré dans les stratégies ou on peut le passer ici si on le veut global
+            $demandeData = [
+                'date_demande' => now(), // Toujours now()
                 'motif' => $data['motif'] ?? null,
                 'statut' => $data['statut'] ?? 'en_attente',
                 'id_type_demande' => $data['id_type_demande'],
                 'id_salarie' => $data['id_salarie'],
                 'id_ayant_droit' => $data['id_ayant_droit'] ?? null,
-                'id_prestataire' => $data['id_prestataire'] ?? null,
-            ]);
+            ];
+
+            // Assignation des nouveaux Foreign Keys
+            if ($strategyCode === 'BC') {
+                $demandeData['id_pharmacie'] = $data['id_pharmacie'];
+                $demandeData['numero_demande'] = Demande::generateNumber('BC', 'numero_demande');
+            } else {
+                $demandeData['id_praticien'] = $data['id_praticien'];
+                $demandeData['id_type_prestation'] = $data['id_type_prestation'] ?? null;
+                $demandeData['numero_demande'] = Demande::generateNumber($strategyCode, 'numero_demande');
+            }
+
+            $demande = Demande::create($demandeData);
 
             // Traitement spécifique
             $specificModel = $strategy->process($demande, $data);
@@ -76,9 +85,6 @@ class DemandeService
         });
     }
 
-    /**
-     * Helper pour mapper le libellé du type de demande vers un code de stratégie
-     */
     private function getStrategyCodeFromLibelle(string $libelle): string
     {
         $libelleLower = strtolower($libelle);

@@ -47,7 +47,7 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
-            return redirect()->intended(route('demandes.index'));
+            return redirect()->intended(route('reporting.index'));
         }
 
         return back()->withErrors([
@@ -62,8 +62,9 @@ class AuthController extends Controller
     {
         Auth::logout();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Ne pas invalider la session complète pour ne pas déconnecter le bénéficiaire (multi-guard)
+        // $request->session()->invalidate();
+        // $request->session()->regenerateToken();
 
         return redirect()->route('login');
     }

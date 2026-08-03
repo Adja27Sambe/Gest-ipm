@@ -17,7 +17,14 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4">
             <!-- Formulaire de filtre -->
-            <form action="{{ route('pieces-jointes.index') }}" method="GET" class="row g-3 mb-4">
+            <form action="{{ route('pieces-jointes.index') }}" method="GET" class="row g-3 mb-4 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Recherche dynamique</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Nom de fichier, utilisateur..." value="{{ request('search') }}" autocomplete="off">
+                    </div>
+                </div>
                 <div class="col-md-4">
                     <label class="form-label fw-bold">Filtrer par Catégorie</label>
                     <select name="id_categorie" class="form-select bg-light border-0" onchange="this.form.submit()">
@@ -29,6 +36,15 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Par page</label>
+                    <select name="per_page" id="per_page" class="form-select bg-light border-0" onchange="this.form.submit()">
+                        <option value="5" {{ request('per_page', 5) == 5 ? 'selected' : '' }}>5 / page</option>
+                        <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10 / page</option>
+                        <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25 / page</option>
+                        <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50 / page</option>
+                    </select>
+                </div>
             </form>
 
             <div class="table-responsive">
@@ -38,7 +54,7 @@
                             <th>Fichier</th>
                             <th>Catégorie</th>
                             <th>Entité Associée</th>
-                            <th>Ajouté le</th>
+                            <th>Ajouté le & Heure</th>
                             <th>Par</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -80,18 +96,20 @@
                                         <span class="text-muted fst-italic">Entité orpheline</span>
                                     @endif
                                 </td>
-                                <td>{{ \Carbon\Carbon::parse($piece->date_ajout)->format('d/m/Y H:i') }}</td>
+                                <td class="text-nowrap"><i class="bi bi-clock me-1 text-muted"></i>{{ \Carbon\Carbon::parse($piece->date_ajout)->format('d/m/Y à H:i') }}</td>
                                 <td>{{ $piece->utilisateur->nom ?? 'Système' }}</td>
                                 <td class="text-end">
-                                    @if(str_contains($piece->type_fichier, 'pdf') || str_contains($piece->type_fichier, 'image'))
-                                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('{{ route('pieces-jointes.show', $piece->id_piece) }}', '{{ $piece->type_fichier }}', '{{ $piece->nom_fichier }}')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    @endif
-                                    
-                                    <a href="{{ route('pieces-jointes.download', $piece->id_piece) }}" class="btn btn-sm btn-outline-primary me-1" target="_blank">
-                                        <i class="fas fa-download"></i>
-                                    </a>
+                                    <div class="btn-group btn-group-sm" role="group" aria-label="Actions pièce jointe">
+                                        @if(str_contains($piece->type_fichier, 'pdf') || str_contains($piece->type_fichier, 'image'))
+                                            <button class="btn btn-outline-info" onclick="previewDocument('{{ route('pieces-jointes.show', $piece->id_piece) }}', '{{ $piece->type_fichier }}', '{{ $piece->nom_fichier }}')" title="Aperçu">
+                                                <i class="fas fa-eye"></i> Aperçu
+                                            </button>
+                                        @endif
+                                        
+                                        <a href="{{ route('pieces-jointes.download', $piece->id_piece) }}" class="btn btn-outline-primary" target="_blank" title="Télécharger">
+                                            <i class="fas fa-download"></i> Télécharger
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -106,8 +124,13 @@
                 </table>
             </div>
             
-            <div class="mt-4">
-                {{ $pieces->links() }}
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted small">
+                    Affichage de {{ $pieces->firstItem() ?? 0 }} à {{ $pieces->lastItem() ?? 0 }} sur {{ $pieces->total() }} documents
+                </div>
+                <div>
+                    {{ $pieces->links('pagination::bootstrap-5') }}
+                </div>
             </div>
         </div>
     </div>

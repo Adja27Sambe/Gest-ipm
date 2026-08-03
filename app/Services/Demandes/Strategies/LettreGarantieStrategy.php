@@ -5,41 +5,42 @@ namespace App\Services\Demandes\Strategies;
 use App\Services\Demandes\DemandeStrategyInterface;
 use App\Models\Demande;
 use App\Models\LettreGarantie;
-use App\Models\Prestataire;
+use App\Models\ParametreCouverture;
+use Carbon\Carbon;
 
 class LettreGarantieStrategy implements DemandeStrategyInterface
 {
     public function validateSpecifics(array $data): void
     {
-        // Filtre praticien : Tous les praticiens enregistrés (excluant pharmacies et opticiens)
-        if (isset($data['id_prestataire'])) {
-            $prestataire = Prestataire::with('type')->find($data['id_prestataire']);
-            
-            if ($prestataire && $prestataire->type) {
-                $typeLibelle = strtolower($prestataire->type->libelle);
-                if (str_contains($typeLibelle, 'pharmacie') || str_contains($typeLibelle, 'opticien')) {
-                    throw new \Exception("Une Lettre de Garantie ne peut pas être émise pour une Pharmacie ou un Opticien.");
-                }
-            }
+        if (empty($data['id_praticien'])) {
+            throw new \InvalidArgumentException("Un Praticien est obligatoire pour une Lettre de garantie.");
         }
-
-        // Choix de l'acte est requis
+        if (!empty($data['id_pharmacie'])) {
+            throw new \InvalidArgumentException("Une Pharmacie ne peut pas être associée à une Lettre de garantie.");
+        }
         if (empty($data['choix_acte'])) {
-            throw new \Exception("Le choix de l'acte est requis pour une Lettre de Garantie.");
+            throw new \InvalidArgumentException("Le choix de l'acte est requis pour une Lettre de Garantie.");
         }
     }
 
     public function process(Demande $demande, array $data)
     {
-        // Générer un numéro unique
-        $numeroLettre = 'LG-' . date('Ymd') . '-' . strtoupper(uniqid());
+        $tauxPriseCharge = 80.00;
+        if (!empty($data['id_type_prestation'])) {
+            $parametre = ParametreCouverture::where('id_type_prestation', $data['id_type_prestation'])->first();
+            if ($parametre) {
+                $tauxPriseCharge = $parametre->taux_prise_charge;
+            }
+        }
 
         return LettreGarantie::create([
             'id_demande' => $demande->id_demande,
-            'numero_lettre' => $numeroLettre,
-            'date_emission' => now(),
-            'choix_acte' => $data['choix_acte'],
+            'numero_lettre' => $demande->numero_demande ?? ('LG-' . uniqid()),
+            'date_emission' => Carbon::now(),
+            'choix_acte' => is_array($data['choix_acte']) ? implode(', ', $data['choix_acte']) : $data['choix_acte'],
             'observations' => $data['observations'] ?? null,
+            'taux_prise_charge' => $tauxPriseCharge,
+            'date_validite' => Carbon::now()->endOfMonth(),
         ]);
     }
 }

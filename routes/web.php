@@ -5,11 +5,46 @@ use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\EntrepriseController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\Web\PrestataireWebController;
+use App\Http\Controllers\Web\PraticienWebController;
+use App\Http\Controllers\Web\PharmacieWebController;
 use App\Http\Controllers\Web\ConventionWebController;
-use App\Http\Controllers\DevisController;
 use App\Http\Controllers\PrestationController;
 use App\Http\Controllers\DossierMedicalController;
+
+use App\Http\Controllers\UtilisateurController;
+use Illuminate\Support\Facades\Hash;
+use App\Models\Salarie;
+
+// Route temporaire pour générer un code de démonstration
+Route::get('generate-demo', function () {
+    $salarie = Salarie::first();
+    if (!$salarie) {
+        return "Aucun salarié trouvé dans la base de données. Créez-en un d'abord.";
+    }
+
+    $demoCode = '1234';
+    $salarie->code_securite = Hash::make($demoCode);
+    $salarie->save();
+
+    return "<h2>DÉMO ESPACE BÉNÉFICIAIRE</h2>" .
+           "<p><strong>Matricule :</strong> " . $salarie->matricule . "</p>" .
+           "<p><strong>Code de sécurité :</strong> " . $demoCode . "</p>" .
+           "<p><a href='" . route('participant.login') . "'>Aller à la page de connexion</a></p>";
+});
+
+// Routes pour l'espace bénéficiaire (Participants)
+Route::prefix('espace-beneficiaire')->name('participant.')->group(function () {
+    Route::get('login', [App\Http\Controllers\Participant\AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [App\Http\Controllers\Participant\AuthController::class, 'login']);
+
+    Route::middleware('auth:participant')->group(function () {
+        Route::match(['get', 'post'], 'logout', [App\Http\Controllers\Participant\AuthController::class, 'logout'])->name('logout');
+        Route::get('dashboard', [App\Http\Controllers\Participant\DashboardController::class, 'index'])->name('dashboard');
+        
+        Route::get('demandes/create', [App\Http\Controllers\Participant\DemandeController::class, 'create'])->name('demandes.create');
+        Route::post('demandes', [App\Http\Controllers\Participant\DemandeController::class, 'store'])->name('demandes.store');
+    });
+});
 
 // Routes publiques
 Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -18,13 +53,25 @@ Route::post('login', [AuthController::class, 'login']);
 // Routes protégées
 Route::middleware('auth')->group(function () {
     Route::get('/', function () {
-        return redirect()->route('demandes.index');
+        return redirect()->route('reporting.index');
     });
+
+    Route::get('/reporting', [App\Http\Controllers\ReportingController::class, 'index'])->name('reporting.index');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
+    Route::get('demandes/recherche-participant', [App\Http\Controllers\DemandeController::class, 'rechercheParticipant'])->name('demandes.recherche');
+    Route::get('dashboard/demandes', [App\Http\Controllers\DemandeDashboardController::class, 'index'])->name('dashboard.demandes');
+    Route::get('demandes/{id}/pdf', [App\Http\Controllers\Api\DemandeApiController::class, 'generatePdf'])->name('demandes.pdf');
+    
+    // Validation des demandes
+    Route::get('demandes/validation', [App\Http\Controllers\ValidationDemandeController::class, 'index'])->name('demandes.validation.index');
+    Route::post('demandes/{demande}/approuver', [App\Http\Controllers\ValidationDemandeController::class, 'approuver'])->name('demandes.approuver');
+    Route::post('demandes/{demande}/rejeter', [App\Http\Controllers\ValidationDemandeController::class, 'rejeter'])->name('demandes.rejeter');
+
     Route::resource('demandes', DemandeController::class)->middleware('can:gerer_demandes');
     Route::resource('entreprises', EntrepriseController::class)->middleware('can:gerer_entreprises');
+    Route::get('entreprises/{entreprise}/next-matricule', [EntrepriseController::class, 'getNextMatricule'])->name('entreprises.next-matricule');
     
     Route::middleware('can:gerer_salaries')->group(function() {
         Route::resource('salaries', App\Http\Controllers\SalarieController::class)->parameters([
@@ -35,19 +82,19 @@ Route::middleware('auth')->group(function () {
         Route::put('ayants-droit/{ayantDroit}', [App\Http\Controllers\AyantDroitController::class, 'update'])->name('ayants-droit.update');
         Route::delete('ayants-droit/{ayantDroit}', [App\Http\Controllers\AyantDroitController::class, 'destroy'])->name('ayants-droit.destroy');
         Route::post('salaries/{salarie}/carte-assure/generate', [App\Http\Controllers\CarteAssureController::class, 'generate'])->name('cartes-assurees.generate');
+        Route::get('cartes-assurees/{carte}', [App\Http\Controllers\CarteAssureController::class, 'show'])->name('cartes-assurees.show');
         Route::get('cartes-assurees/{carte}/download', [App\Http\Controllers\CarteAssureController::class, 'downloadPdf'])->name('cartes-assurees.download');
     });
 
-    // Gestion des Prestataires et Conventions
+    // Gestion des Praticiens et Pharmacies (Anciennement Prestataires)
     Route::middleware('can:gerer_prestataires')->group(function() {
-        Route::resource('prestataires', PrestataireWebController::class)->except(['create', 'show', 'edit']);
+        Route::resource('praticiens', PraticienWebController::class)->except(['create', 'show', 'edit']);
+        Route::resource('pharmacies', PharmacieWebController::class)->except(['create', 'show', 'edit']);
         Route::resource('conventions', ConventionWebController::class)->only(['store', 'update', 'destroy']);
     });
 
     // Gestion des Prestations (et Devis)
     Route::middleware('can:gerer_prestations')->group(function() {
-        Route::get('devis', [DevisController::class, 'index'])->name('devis.index');
-        Route::post('devis/{id}/transition', [DevisController::class, 'transition'])->name('devis.transition');
         Route::get('prestations', [PrestationController::class, 'index'])->name('prestations.index');
         Route::post('prestations', [PrestationController::class, 'store'])->name('prestations.store');
         Route::get('prestations/export', [PrestationController::class, 'export'])->name('prestations.export');
@@ -60,14 +107,17 @@ Route::middleware('auth')->group(function () {
         Route::post('dossier-medical/{type}/{id}', [DossierMedicalController::class, 'store'])->name('dossier-medical.store');
     });
 
-    // Gestion des rôles et permissions
+    // Gestion des utilisateurs, rôles et permissions
     Route::middleware('can:gerer_roles')->group(function () {
         Route::resource('roles', RoleController::class)->except(['create', 'edit', 'show']);
+        Route::resource('utilisateurs', UtilisateurController::class);
     });
 
     // Facturation et Paiements
     Route::middleware('can:Gérer la facturation')->group(function () {
         Route::get('factures', [App\Http\Controllers\FacturationController::class, 'index'])->name('factures.index');
+        Route::get('factures/create', [App\Http\Controllers\FacturationController::class, 'create'])->name('factures.create');
+        Route::post('factures', [App\Http\Controllers\FacturationController::class, 'store'])->name('factures.store');
         Route::get('factures/{facture}', [App\Http\Controllers\FacturationController::class, 'show'])->name('factures.show');
         Route::post('factures/{facture}/paiements', [App\Http\Controllers\FacturationController::class, 'storePaiement'])->name('factures.paiements.store');
     });

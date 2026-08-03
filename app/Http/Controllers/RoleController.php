@@ -11,9 +11,10 @@ class RoleController extends Controller
     /**
      * Affiche la liste des rôles.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $roles = Role::with('permissions', 'utilisateurs')->get();
+        $perPage = $request->input('per_page', 5);
+        $roles = Role::with('permissions', 'utilisateurs')->latest('id_role')->paginate($perPage)->withQueryString();
         $permissions = \Illuminate\Support\Facades\Cache::rememberForever('permissions_all', function () {
             return Permission::all();
         });

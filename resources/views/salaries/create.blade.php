@@ -32,7 +32,7 @@
                     
                     <div class="col-md-6">
                         <label class="form-label fw-medium">Matricule</label>
-                        <input type="text" name="matricule" class="form-control bg-light border-0 @error('matricule') is-invalid @enderror" value="{{ old('matricule') }}" placeholder="Optionnel">
+                        <input type="text" name="matricule" class="form-control bg-light border-0 @error('matricule') is-invalid @enderror" value="{{ old('matricule') }}" placeholder="Auto-généré après sélection" readonly>
                         @error('matricule')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -120,4 +120,39 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const entrepriseSelect = document.querySelector('select[name="id_entreprise"]');
+        const matriculeInput = document.querySelector('input[name="matricule"]');
+        
+        if(entrepriseSelect && matriculeInput) {
+            entrepriseSelect.addEventListener('change', function() {
+                const entrepriseId = this.value;
+                if(!entrepriseId) {
+                    matriculeInput.value = '';
+                    return;
+                }
+                
+                // Show loading state in placeholder
+                const originalPlaceholder = matriculeInput.placeholder;
+                matriculeInput.placeholder = 'Génération en cours...';
+                
+                fetch(`/entreprises/${entrepriseId}/next-matricule`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.matricule) {
+                            matriculeInput.value = data.matricule;
+                        }
+                    })
+                    .catch(error => console.error('Erreur lors de la récupération du matricule:', error))
+                    .finally(() => {
+                        matriculeInput.placeholder = originalPlaceholder;
+                    });
+            });
+        }
+    });
+</script>
+@endpush
 @endsection

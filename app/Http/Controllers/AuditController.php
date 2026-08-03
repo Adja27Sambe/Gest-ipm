@@ -36,8 +36,8 @@ class AuditController extends Controller
             $query->where('date_heure', '<=', $request->date_fin . ' 23:59:59');
         }
 
-        $historiques = $query->paginate(20);
-        $historiques->appends($request->all());
+        $perPage = $request->input('per_page', 5);
+        $historiques = $query->paginate($perPage)->withQueryString();
 
         $modules_disponibles = HistoriqueMouvement::select('module')->distinct()->whereNotNull('module')->pluck('module');
         $actions_disponibles = HistoriqueMouvement::select('action')->distinct()->whereNotNull('action')->pluck('action');

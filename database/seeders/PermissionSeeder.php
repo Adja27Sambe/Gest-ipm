@@ -17,6 +17,7 @@ class PermissionSeeder extends Seeder
         $permissions = [
             // Administration
             'gerer_roles',
+            'gerer_utilisateurs',
             'voir_audit',
             'gerer_parametres_couverture',
             // Cœur de Métier

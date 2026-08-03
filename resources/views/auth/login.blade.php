@@ -1,24 +1,18 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid p-0 login-wrapper">
-    <div class="row g-0 vh-100">
-        <!-- Section Visuel (Gauche) - Caché sur mobile -->
-        <div class="col-lg-7 d-none d-lg-block position-relative bg-light">
-            <div class="visuel-overlay"></div>
-            <!-- L'image de fond est chargée via CSS en utilisant le helper asset() -->
-            <div class="h-100 w-100 visuel-bg" style="background-image: url('{{ asset('visuel.png') }}'); background-size: cover; background-position: center;"></div>
-        </div>
-
-        <!-- Section Formulaire (Droite) -->
-        <div class="col-lg-5 d-flex align-items-center justify-content-center bg-white shadow-lg z-index-1">
-            <div class="w-100 px-4 px-md-5" style="max-width: 450px;">
+<div class="container-fluid p-0 login-wrapper" style="background-image: url('{{ asset('medical_anime_bg.png') }}'); background-size: cover; background-position: center; position: relative;">
+    <div class="visuel-overlay"></div>
+    <div class="row g-0 vh-100 position-relative z-index-1">
+        <!-- Section Formulaire (Centré avec Glassmorphism) -->
+        <div class="col-12 d-flex align-items-center justify-content-center">
+            <div class="w-100 px-4 py-5 px-md-5 mx-3 mx-md-0 glass-card" style="max-width: 480px;">
                 <div class="text-center mb-5">
                     <!-- Logo Mbaarum Koolute -->
-                    <img src="{{ asset('logo.png') }}" alt="Mbaarum Koolute" class="mb-4 logo-animate img-fluid" style="max-height: 90px; width: auto; object-fit: contain;" onerror="this.onerror=null; this.src='https://via.placeholder.com/150x60/0056b3/ffffff?text=Mbaarum+Koolute';">
+                    <img src="{{ asset('logo.png') }}" alt="Mbaarum Koolute" class="mb-4 logo-animate img-fluid" style="max-height: 80px; width: auto; object-fit: contain;" onerror="this.onerror=null; this.src='https://via.placeholder.com/150x60/0056b3/ffffff?text=Mbaarum+Koolute';">
                     
                     <h3 class="fw-bold text-dark">Bienvenue</h3>
-                    <p class="text-muted">Veuillez vous connecter à votre espace</p>
+                    <p class="text-secondary">Veuillez vous connecter à votre espace</p>
                 </div>
 
                 @if ($errors->any())
@@ -36,16 +30,16 @@
                     <div class="mb-4 input-group-custom">
                         <label for="login" class="form-label fw-semibold text-secondary">Identifiant</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
-                            <input id="login" type="text" class="form-control bg-light border-start-0 ps-0 @error('login') is-invalid @enderror" name="login" value="{{ old('login') }}" required autocomplete="login" autofocus placeholder="Entrez votre identifiant">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                            <input id="login" type="text" class="form-control bg-white border-start-0 ps-0 @error('login') is-invalid @enderror" name="login" value="{{ old('login') }}" required autocomplete="login" autofocus placeholder="Entrez votre identifiant">
                         </div>
                     </div>
 
                     <div class="mb-5 input-group-custom">
                         <label for="mot_de_passe" class="form-label fw-semibold text-secondary">Mot de passe</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
-                            <input id="mot_de_passe" type="password" class="form-control bg-light border-start-0 ps-0 @error('mot_de_passe') is-invalid @enderror" name="mot_de_passe" required autocomplete="current-password" placeholder="Entrez votre mot de passe">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                            <input id="mot_de_passe" type="password" class="form-control bg-white border-start-0 ps-0 @error('mot_de_passe') is-invalid @enderror" name="mot_de_passe" required autocomplete="current-password" placeholder="Entrez votre mot de passe">
                         </div>
                     </div>
 
@@ -57,7 +51,7 @@
                 </form>
                 
                 <div class="text-center mt-5">
-                    <p class="text-muted small">&copy; {{ date('Y') }} GEST-IPM - Mbaarum Koolute</p>
+                    <p class="text-secondary small fw-medium">&copy; {{ date('Y') }} GEST-IPM - Mbaarum Koolute</p>
                 </div>
             </div>
         </div>
@@ -69,7 +63,7 @@
     body {
         margin: 0;
         padding: 0;
-        background-color: #fff;
+        background-color: #000;
     }
     
     #wrapper, .container-fluid.mt-4 {
@@ -85,8 +79,19 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, rgba(0, 86, 179, 0.1) 0%, rgba(11, 142, 54, 0.1) 100%);
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(5px);
         pointer-events: none;
+    }
+
+    /* Glassmorphism Card */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 24px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
     }
 
     /* Animation du logo */
@@ -114,34 +119,36 @@
     /* Styles des inputs */
     .input-group-custom .input-group-text,
     .input-group-custom .form-control {
-        border-color: #eef0f3;
+        border-color: rgba(0,0,0,0.1);
+        background-color: rgba(255,255,255,0.9) !important;
         transition: all 0.3s ease;
-        padding-top: 0.75rem;
-        padding-bottom: 0.75rem;
+        padding-top: 0.85rem;
+        padding-bottom: 0.85rem;
     }
     
     .input-group-custom .input-group:focus-within .input-group-text {
-        border-color: var(--primary-blue, #0056b3);
-        color: var(--primary-blue, #0056b3) !important;
+        border-color: var(--primary-blue, #0d6efd);
+        color: var(--primary-blue, #0d6efd) !important;
         background-color: #fff !important;
     }
     
     .input-group-custom .input-group:focus-within .form-control {
-        border-color: var(--primary-blue, #0056b3);
+        border-color: var(--primary-blue, #0d6efd);
         background-color: #fff !important;
         box-shadow: none;
     }
 
     /* Style du bouton */
     .login-btn {
-        background: linear-gradient(135deg, var(--primary-blue, #0056b3), #007bff);
+        background: linear-gradient(135deg, #0d6efd, #00d2ff);
         border: none;
         transition: all 0.3s ease;
+        color: white;
     }
     
     .login-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 86, 179, 0.3) !important;
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.4) !important;
     }
 </style>
 

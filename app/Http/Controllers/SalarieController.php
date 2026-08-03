@@ -25,7 +25,8 @@ class SalarieController extends Controller
             $query->where('statut', $request->statut);
         }
 
-        $salaries = $query->paginate(15)->withQueryString();
+        $perPage = $request->input('per_page', 5);
+        $salaries = $query->latest('id_salarie')->paginate($perPage)->withQueryString();
 
         return view('salaries.index', compact('salaries'));
     }

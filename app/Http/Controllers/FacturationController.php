@@ -5,33 +5,144 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Facture;
 use App\Models\PaiementPrestataire;
-use App\Models\Prestataire;
+use App\Models\Praticien;
+use App\Models\Pharmacie;
+use App\Models\Prestation;
 
 class FacturationController extends Controller
 {
+    private function getPartenaires()
+    {
+        $praticiens = Praticien::select('id_praticien as id', 'nom')->get()->map(function($p) {
+            $p->type = 'praticien';
+            $p->value = 'praticien_' . $p->id;
+            return $p;
+        });
+        
+        $pharmacies = Pharmacie::select('id_pharmacie as id', 'nom')->get()->map(function($p) {
+            $p->type = 'pharmacie';
+            $p->value = 'pharmacie_' . $p->id;
+            return $p;
+        });
+
+        return $praticiens->concat($pharmacies)->sortBy('nom');
+    }
+
     /**
      * Affiche le tableau de bord des factures (impayées / en attente).
      */
     public function index(Request $request)
     {
-        $prestataires = Prestataire::select('id_prestataire', 'nom')->orderBy('nom')->get();
+        $partenaires = $this->getPartenaires();
         
-        $query = Facture::with(['prestataire'])
+        $query = Facture::with(['praticien', 'pharmacie'])
             ->withSum('paiementPrestataires', 'montant')
             ->whereIn('statut_paiement', ['en_attente', 'partiellement_payee']);
         
-        if ($request->has('id_prestataire') && $request->id_prestataire != '') {
-            $query->where('id_prestataire', $request->id_prestataire);
+        if ($request->has('partenaire') && $request->partenaire != '') {
+            $parts = explode('_', $request->partenaire);
+            if (count($parts) == 2) {
+                if ($parts[0] === 'praticien') {
+                    $query->where('id_praticien', $parts[1]);
+                } elseif ($parts[0] === 'pharmacie') {
+                    $query->where('id_pharmacie', $parts[1]);
+                }
+            }
         }
         
-        $factures = $query->orderBy('date_facture', 'asc')->paginate(15);
+        $perPage = $request->input('per_page', 5);
+        $factures = $query->orderBy('date_facture', 'desc')->orderBy('id_facture', 'desc')->paginate($perPage)->withQueryString();
         
         // Optimisation majeure : Calcul du total du en utilisant l'agrégat SQL au lieu de l'accesseur N+1
         $totalDu = (clone $query)->get()->sum(function($facture) {
             return ($facture->montant ?? 0) - ($facture->paiement_prestataires_sum_montant ?? 0);
         });
 
-        return view('factures.index', compact('factures', 'prestataires', 'totalDu'));
+        return view('factures.index', compact('factures', 'partenaires', 'totalDu'));
+    }
+
+    /**
+     * Affiche le formulaire de création d'une facture.
+     */
+    public function create(Request $request)
+    {
+        $partenaires = $this->getPartenaires();
+        $prestationsNonFacturees = collect();
+        $partenaireSelectionne = null;
+
+        if ($request->has('partenaire') && $request->partenaire != '') {
+            $parts = explode('_', $request->partenaire);
+            if (count($parts) == 2) {
+                if ($parts[0] === 'praticien') {
+                    $partenaireSelectionne = Praticien::find($parts[1]);
+                    if ($partenaireSelectionne) {
+                        $partenaireSelectionne->type_partenaire = 'praticien';
+                        $prestationsNonFacturees = Prestation::where('id_praticien', $parts[1])
+                            ->whereDoesntHave('factures')
+                            ->with(['demande.salarie', 'demande.ayantDroit', 'typePrestation'])
+                            ->orderBy('date_prestation', 'desc')
+                            ->get();
+                    }
+                } elseif ($parts[0] === 'pharmacie') {
+                    $partenaireSelectionne = Pharmacie::find($parts[1]);
+                    if ($partenaireSelectionne) {
+                        $partenaireSelectionne->type_partenaire = 'pharmacie';
+                        $prestationsNonFacturees = Prestation::where('id_pharmacie', $parts[1])
+                            ->whereDoesntHave('factures')
+                            ->with(['demande.salarie', 'demande.ayantDroit', 'typePrestation'])
+                            ->orderBy('date_prestation', 'desc')
+                            ->get();
+                    }
+                }
+            }
+        }
+
+        return view('factures.create', compact('partenaires', 'prestationsNonFacturees', 'partenaireSelectionne'));
+    }
+
+    /**
+     * Enregistre une nouvelle facture.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'partenaire' => 'required|string',
+            'numero_facture' => 'required|string|unique:facture,numero_facture|max:50',
+            'date_facture' => 'required|date',
+            'prestations' => 'required|array',
+            'prestations.*' => 'exists:prestation,id_prestation'
+        ], [
+            'prestations.required' => 'Veuillez sélectionner au moins une prestation.'
+        ]);
+
+        $parts = explode('_', $request->partenaire);
+        if (count($parts) != 2 || !in_array($parts[0], ['praticien', 'pharmacie'])) {
+            return back()->withErrors(['partenaire' => 'Partenaire invalide.']);
+        }
+
+        $prestations = Prestation::whereIn('id_prestation', $request->prestations)->get();
+        
+        $montantFacture = $prestations->sum(function($p) {
+            return $p->montant - $p->reste_a_charge;
+        });
+
+        $factureData = [
+            'numero_facture' => $request->numero_facture,
+            'date_facture' => $request->date_facture,
+            'montant' => $montantFacture,
+            'statut_paiement' => 'en_attente',
+        ];
+
+        if ($parts[0] === 'praticien') {
+            $factureData['id_praticien'] = $parts[1];
+        } else {
+            $factureData['id_pharmacie'] = $parts[1];
+        }
+
+        $facture = Facture::create($factureData);
+        $facture->prestations()->attach($request->prestations);
+
+        return redirect()->route('factures.index')->with('success', 'Facture générée avec succès.');
     }
 
     /**
@@ -39,7 +150,7 @@ class FacturationController extends Controller
      */
     public function show($id)
     {
-        $facture = Facture::with(['prestataire', 'prestations', 'paiementPrestataires'])->findOrFail($id);
+        $facture = Facture::with(['praticien', 'pharmacie', 'prestations', 'paiementPrestataires'])->findOrFail($id);
         return view('factures.show', compact('facture'));
     }
 

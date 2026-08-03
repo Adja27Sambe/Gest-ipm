@@ -22,7 +22,9 @@ class UpdateConventionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id_prestataire' => 'sometimes|required|exists:prestataire,id_prestataire',
+            'id_praticien' => 'nullable|exists:praticien,id_praticien',
+            'id_pharmacie' => 'nullable|exists:pharmacie,id_pharmacie',
+            'id_prestataire' => 'nullable|exists:prestataire,id_prestataire',
             'date_debut' => 'nullable|date',
             'date_fin' => 'nullable|date|after_or_equal:date_debut',
             'statut' => 'nullable|string|max:50',

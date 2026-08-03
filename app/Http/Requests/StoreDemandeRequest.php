@@ -25,7 +25,9 @@ class StoreDemandeRequest extends FormRequest
             'id_type_demande' => 'required|exists:type_demande,id_type_demande',
             'id_salarie' => 'required|exists:salarie,id_salarie',
             'id_ayant_droit' => 'nullable|exists:ayant_droit,id_ayant_droit',
-            'id_prestataire' => 'nullable|exists:prestataire,id_prestataire',
+            'id_praticien' => 'nullable|exists:praticien,id_praticien',
+            'id_pharmacie' => 'nullable|exists:pharmacie,id_pharmacie',
+            'id_type_prestation' => 'nullable|exists:type_prestation,id_type_prestation',
             'motif' => 'nullable|string|max:1000',
             'date_demande' => 'nullable|date',
             // Pour Feuille de Maladie et Lettre Garantie
@@ -35,7 +37,7 @@ class StoreDemandeRequest extends FormRequest
         ];
 
         if ($this->has('nombre_articles')) {
-            $rules['nombre_articles'] = 'integer|min:1';
+            $rules['nombre_articles'] = 'nullable|integer|min:1';
         }
 
         if ($this->has('date_ordonnance')) {
@@ -43,7 +45,8 @@ class StoreDemandeRequest extends FormRequest
         }
 
         if ($this->has('choix_acte')) {
-            $rules['choix_acte'] = 'string|max:255';
+            $rules['choix_acte'] = 'nullable|array';
+            $rules['choix_acte.*'] = 'string|max:255';
         }
 
         return $rules;

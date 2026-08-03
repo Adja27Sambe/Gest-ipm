@@ -23,7 +23,8 @@ class PrestationController extends Controller
             $query->where('id_prestataire', $request->id_prestataire);
         }
 
-        $prestations = $query->latest('date_prestation')->paginate(15);
+        $perPage = $request->input('per_page', 5);
+        $prestations = $query->latest('date_prestation')->latest('id_prestation')->paginate($perPage)->withQueryString();
         
         $typesPrestation = TypePrestation::select('id_type_prestation', 'libelle')->get();
         $prestataires = Prestataire::select('id_prestataire', 'nom')->get();

@@ -11,9 +11,19 @@ class Facture extends Model
     protected $primaryKey = 'id_facture';
     protected $guarded = [];
 
-    public function prestataire()
+    public function praticien()
     {
-        return $this->belongsTo(Prestataire::class, 'id_prestataire');
+        return $this->belongsTo(Praticien::class, 'id_praticien', 'id_praticien');
+    }
+
+    public function pharmacie()
+    {
+        return $this->belongsTo(Pharmacie::class, 'id_pharmacie', 'id_pharmacie');
+    }
+
+    public function getPartenaireAttribute()
+    {
+        return $this->praticien ?? $this->pharmacie;
     }
 
 

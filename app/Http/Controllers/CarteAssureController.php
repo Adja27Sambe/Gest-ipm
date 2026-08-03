@@ -64,10 +64,18 @@ class CarteAssureController extends Controller
         
         $pdf = Pdf::loadView('pdf.carte_assure', compact('carte'));
         
-        // Optionnel : personnaliser le format (ex: format carte de crédit)
-        // $pdf->setPaper([0, 0, 240, 153], 'landscape'); // Format CR80 approximatif (~85x54mm)
-        $pdf->setPaper('A4', 'portrait');
+        // Format standard carte bancaire / badge (85mm x 54mm = 240.95pt x 153.07pt)
+        $pdf->setPaper([0, 0, 240.95, 153.07], 'landscape');
 
         return $pdf->download('carte_assure_' . $carte->numero_carte . '.pdf');
+    }
+
+    /**
+     * Affiche la carte d'assuré (Recto-Verso) interactive.
+     */
+    public function show(CarteAssure $carte)
+    {
+        $carte->load(['salarie.entreprise', 'salarie.photo']);
+        return view('salaries.carte', compact('carte'));
     }
 }

@@ -99,48 +99,31 @@
 
         <!-- Carte Assuré -->
         <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+            <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
                 <div class="card-body p-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="mb-0"><i class="bi bi-credit-card-2-front me-2"></i>Carte d'Assuré (IPM)</h5>
-                        <i class="bi bi-shield-check fs-2 opacity-50"></i>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="mb-0 text-dark fw-bold"><i class="bi bi-credit-card-2-front me-2 text-primary"></i>Carte Participant (Assuré IPM)</h5>
+                            <small class="text-muted">Template officiel Recto - Verso téléchargeable en PNG</small>
+                        </div>
+                        @if($salarie->carteAssure)
+                            <a href="{{ route('cartes-assurees.show', $salarie->carteAssure) }}" class="btn btn-sm btn-outline-primary rounded-pill">
+                                <i class="bi bi-arrows-fullscreen me-1"></i> Mode Plein Écran
+                            </a>
+                        @endif
                     </div>
                     
                     @if($salarie->carteAssure)
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <h3 class="mb-1 text-white opacity-75" style="letter-spacing: 2px;">{{ $salarie->carteAssure->numero_carte }}</h3>
-                                <p class="mb-4 text-white-50">Délivrée le {{ \Carbon\Carbon::parse($salarie->carteAssure->date_emission)->format('d/m/Y') }}</p>
-                                
-                                <div class="d-flex gap-4 mb-4">
-                                    <div>
-                                        <small class="text-white-50 d-block">Titulaire</small>
-                                        <span class="fw-bold">{{ mb_strtoupper($salarie->nom) }} {{ $salarie->prenom }}</span>
-                                    </div>
-                                    <div>
-                                        <small class="text-white-50 d-block">Statut Carte</small>
-                                        <span class="badge bg-white text-primary rounded-pill">{{ ucfirst($salarie->carteAssure->statut) }}</span>
-                                    </div>
-                                </div>
-                                
-                                <a href="{{ route('cartes-assurees.download', $salarie->carteAssure) }}" class="btn btn-light text-primary rounded-pill px-4 fw-bold">
-                                    <i class="bi bi-file-earmark-pdf-fill me-2"></i>Télécharger PDF
-                                </a>
-                            </div>
-                            <div class="col-md-4 text-center mt-3 mt-md-0">
-                                <div class="bg-white p-2 rounded-3 d-inline-block shadow-sm">
-                                    {!! $salarie->carteAssure->qr_code !!}
-                                </div>
-                            </div>
-                        </div>
+                        <x-carte-assure-template :carte="$salarie->carteAssure" />
                     @else
-                        <div class="text-center py-4">
-                            <i class="bi bi-credit-card fs-1 d-block mb-3 opacity-50"></i>
-                            <p class="mb-3">Aucune carte d'assuré n'a été générée pour ce salarié.</p>
+                        <div class="text-center py-5 bg-light rounded-4">
+                            <i class="bi bi-credit-card fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                            <h6 class="fw-bold text-dark mb-2">Aucune carte d'assuré n'a été générée pour ce salarié.</h6>
+                            <p class="text-muted mb-4 small">Générez une carte pour obtenir le matricule unique et les cartes téléchargeables au format PNG et PDF.</p>
                             <form action="{{ route('cartes-assurees.generate', $salarie) }}" method="POST">
                                 @csrf
-                                <button type="submit" class="btn btn-light text-primary rounded-pill px-4 fw-bold shadow-sm">
-                                    <i class="bi bi-magic me-2"></i>Générer la carte
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                                    <i class="bi bi-magic me-2"></i>Générer la carte d'assuré
                                 </button>
                             </form>
                         </div>
