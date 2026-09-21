@@ -19,15 +19,15 @@ class CotisationController extends Controller
 
         // Cotisations Entreprises
         $cotisationsEntreprises = Cotisation::with('entreprise')
-            ->whereNotNull('id_entreprise')
-            ->orderBy('created_at', 'desc')
+            ->whereNotNull('ADCLEUNIK')
+            ->orderBy('DATECOTISE', 'desc')
             ->paginate($perPage, ['*'], 'page_entreprises')
             ->withQueryString();
 
         // Cotisations Salariés
-        $cotisationsSalaries = Cotisation::with(['salarie', 'salarie.entreprise'])
-            ->whereNotNull('id_salarie')
-            ->orderBy('created_at', 'desc')
+        $cotisationsSalaries = \App\Models\CotisationParticipant::with(['salarie', 'salarie.entreprise'])
+            ->whereNotNull('PACLEUNIK')
+            ->orderBy('DATECOTISE', 'desc')
             ->paginate($perPage, ['*'], 'page_salaries')
             ->withQueryString();
 
@@ -39,7 +39,7 @@ class CotisationController extends Controller
      */
     public function create()
     {
-        $entreprises = Entreprise::orderBy('raison_sociale')->get();
+        $entreprises = Entreprise::orderBy('ADHERANT')->get();
         $salaries = Salarie::with('entreprise')->orderBy('nom')->get();
 
         return view('cotisations.create', compact('entreprises', 'salaries'));
@@ -97,7 +97,7 @@ class CotisationController extends Controller
     public function edit($id)
     {
         $cotisation = Cotisation::findOrFail($id);
-        $entreprises = Entreprise::orderBy('raison_sociale')->get();
+        $entreprises = Entreprise::orderBy('ADHERANT')->get();
         $salaries = Salarie::with('entreprise')->orderBy('nom')->get();
 
         return view('cotisations.edit', compact('cotisation', 'entreprises', 'salaries'));

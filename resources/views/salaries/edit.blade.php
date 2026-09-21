@@ -6,7 +6,7 @@
         <a href="{{ route('salaries.index') }}" class="btn btn-link text-decoration-none text-secondary me-3">
             <i class="bi bi-arrow-left"></i> Retour
         </a>
-        <h1 class="h3 mb-0 text-gray-800">Modifier Salarié: {{ $salarie->prenom }} {{ $salarie->nom }}</h1>
+        <h1 class="h3 mb-0 text-gray-800">Modifier Participant: {{ $salarie->prenom }} {{ $salarie->nom }}</h1>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4">
@@ -22,7 +22,7 @@
                         <label class="form-label fw-medium">Entreprise *</label>
                         <select name="id_entreprise" class="form-select bg-light border-0 @error('id_entreprise') is-invalid @enderror" required>
                             @foreach($entreprises as $entreprise)
-                                <option value="{{ $entreprise->id_entreprise }}" {{ old('id_entreprise', $salarie->id_entreprise) == $entreprise->id_entreprise ? 'selected' : '' }}>
+                                <option value="{{ $entreprise->id }}" {{ old('id_entreprise', $salarie->id_entreprise) == $entreprise->id ? 'selected' : '' }}>
                                     {{ $entreprise->raison_sociale }}
                                 </option>
                             @endforeach
@@ -68,8 +68,8 @@
                     <div class="col-md-12">
                         <label class="form-label fw-medium">Photo de profil</label>
                         <div class="d-flex align-items-center mb-2">
-                            @if($salarie->photo)
-                                <img src="{{ $salarie->photo->url }}" alt="Photo" class="rounded-circle object-fit-cover me-3 border" style="width: 60px; height: 60px;">
+                            @if($salarie->photo_url)
+                                <img src="{{ $salarie->photo_url }}" alt="Photo" class="rounded-circle object-fit-cover me-3 border" style="width: 60px; height: 60px;">
                             @else
                                 <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 border text-secondary" style="width: 60px; height: 60px;">
                                     <i class="bi bi-person fs-3"></i>

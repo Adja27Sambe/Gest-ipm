@@ -15,8 +15,8 @@ class StoreSalarieRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id_entreprise' => 'required|exists:entreprise,id_entreprise',
-            'matricule' => 'nullable|string|max:50|unique:salarie,matricule',
+            'id_entreprise' => 'required|exists:ADHERANT,IDADHERANT',
+            'matricule' => 'nullable|string|max:50|unique:PARTICIPANT,MATRICULE',
             'nom' => 'required|string|max:100',
             'prenom' => 'nullable|string|max:100',
             'sexe' => 'nullable|in:M,F',

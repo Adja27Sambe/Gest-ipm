@@ -36,7 +36,7 @@ class ProcessDemandeAction
                 BonCommande::create([
                     'numero_bon' => 'BC-' . date('Ym') . '-' . strtoupper(Str::random(5)),
                     'date_emission' => now(),
-                    'taux_prise_charge' => $data['taux_prise_charge'] ?? 80.00, // ex: 80%
+                    'taux_prise_charge' => $data['taux_prise_charge'] ?? 75.00, // ex: 75%
                     'date_validite' => now()->addDays(30),
                     'id_demande' => $demande->id,
                 ]);

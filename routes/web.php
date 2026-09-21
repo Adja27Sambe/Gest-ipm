@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('demandes', DemandeController::class)->middleware('can:gerer_demandes');
     Route::resource('entreprises', EntrepriseController::class)->middleware('can:gerer_entreprises');
     Route::get('entreprises/{entreprise}/next-matricule', [EntrepriseController::class, 'getNextMatricule'])->name('entreprises.next-matricule');
+    Route::get('salaries/search-matricule', [App\Http\Controllers\SalarieController::class, 'searchMatricule'])->name('salaries.search-matricule');
     
     Route::middleware('can:gerer_salaries')->group(function() {
         Route::resource('salaries', App\Http\Controllers\SalarieController::class)->parameters([
@@ -95,9 +96,8 @@ Route::middleware('auth')->group(function () {
 
     // Gestion des Prestations (et Devis)
     Route::middleware('can:gerer_prestations')->group(function() {
-        Route::get('prestations', [PrestationController::class, 'index'])->name('prestations.index');
-        Route::post('prestations', [PrestationController::class, 'store'])->name('prestations.store');
         Route::get('prestations/export', [PrestationController::class, 'export'])->name('prestations.export');
+        Route::resource('prestations', PrestationController::class);
     });
 
     // Dossier Médical

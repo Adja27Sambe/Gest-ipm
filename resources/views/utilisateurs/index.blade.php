@@ -113,9 +113,25 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-1 rounded-pill fw-semibold">
-                                    {{ $user->role->libelle ?? 'Aucun rôle' }}
-                                </span>
+                                @if($user->role)
+                                    <div>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-3 py-1 rounded-pill fw-semibold">
+                                            @if($user->role->libelle === 'Administrateur')
+                                                <i class="bi bi-shield-fill-check text-danger me-1"></i>
+                                            @else
+                                                <i class="bi bi-person-badge me-1"></i>
+                                            @endif
+                                            {{ $user->role->libelle }}
+                                        </span>
+                                        @if($user->role->categorie)
+                                            <div class="text-muted mt-1 ps-1" style="font-size: 0.72rem;">
+                                                <i class="bi bi-tag me-1"></i>{{ $user->role->categorie }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border rounded-pill px-2 py-1">Aucun profil</span>
+                                @endif
                             </td>
                             <td>
                                 @if($user->statut === 'actif')

@@ -59,7 +59,7 @@ class SalarieController extends Controller
 
         if ($request->filled('entreprise')) {
             $query->whereHas('entreprise', function ($q) use ($request) {
-                $q->where('raison_sociale', 'like', '%' . $request->entreprise . '%');
+                $q->where('ADHERANT', 'like', '%' . $request->entreprise . '%');
             });
         }
 

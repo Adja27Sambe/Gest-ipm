@@ -4,13 +4,23 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2 class="fw-bold text-dark mb-0">Factures Impayées</h2>
+            <h2 class="fw-bold text-dark mb-0">
+                @if(request('statut') == 'impayees')
+                    Factures Impayées
+                @elseif(request('statut') == 'payees')
+                    Factures Soldées
+                @else
+                    Toutes les Factures
+                @endif
+            </h2>
             <p class="text-muted mb-0">Suivi et gestion des règlements aux prestataires</p>
         </div>
         <div class="d-flex gap-2">
+            @canedit
             <a href="{{ route('factures.create') }}" class="btn btn-primary shadow-sm rounded-pill px-3">
                 <i class="bi bi-plus-lg me-1"></i> Nouvelle Facture
             </a>
+            @endcanedit
             <a href="{{ url('api/paiements/export?format=pdf') }}" target="_blank" class="btn btn-outline-danger shadow-sm rounded-pill px-3">
                 <i class="bi bi-file-pdf me-1"></i> PDF
             </a>
@@ -54,22 +64,43 @@
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-4">
             <form action="{{ route('factures.index') }}" method="GET" class="row g-3 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <label class="form-label text-muted small fw-medium">Recherche dynamique</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-light-subtle text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" class="form-control border-light-subtle bg-light ps-0 dynamic-search-input" placeholder="N° facture, partenaire..." value="{{ request('search') }}" autocomplete="off">
+                        <input type="text" name="search" class="form-control border-light-subtle bg-light ps-0 dynamic-search-input" placeholder="N° facture..." value="{{ request('search') }}" autocomplete="off">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label text-muted small fw-medium">Partenaire de santé</label>
-                    <select name="partenaire" class="form-select border-light-subtle bg-light">
-                        <option value="">Tous les partenaires</option>
-                        @foreach($partenaires as $part)
-                            <option value="{{ $part->value }}" {{ request('partenaire') == $part->value ? 'selected' : '' }}>
-                                {{ $part->nom }} ({{ ucfirst($part->type) }})
-                            </option>
-                        @endforeach
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-light-subtle text-muted"><i class="bi bi-hospital"></i></span>
+                        <input type="text" 
+                               name="partenaire" 
+                               id="partenaire_input"
+                               class="form-control border-light-subtle bg-light ps-0 dynamic-search-input" 
+                               placeholder="Saisir un médecin ou pharmacie..." 
+                               value="{{ request('partenaire') }}" 
+                               list="partenaires_datalist"
+                               autocomplete="off">
+                        @if(request('partenaire'))
+                            <a href="{{ route('factures.index', request()->except('partenaire')) }}" class="input-group-text bg-light border-light-subtle text-muted text-decoration-none" title="Effacer">
+                                <i class="bi bi-x-circle"></i>
+                            </a>
+                        @endif
+                        <datalist id="partenaires_datalist">
+                            @foreach($partenaires as $part)
+                                <option value="{{ $part->nom }}">{{ $part->nom }} ({{ ucfirst($part->type) }})</option>
+                            @endforeach
+                        </datalist>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-medium">Statut</label>
+                    <select name="statut" class="form-select border-light-subtle bg-light" onchange="this.form.submit()">
+                        <option value="toutes" {{ request('statut', 'toutes') == 'toutes' ? 'selected' : '' }}>Toutes</option>
+                        <option value="impayees" {{ request('statut') == 'impayees' ? 'selected' : '' }}>Impayées</option>
+                        <option value="payees" {{ request('statut') == 'payees' ? 'selected' : '' }}>Payées (Soldées)</option>
                     </select>
                 </div>
                 <div class="col-md-2">

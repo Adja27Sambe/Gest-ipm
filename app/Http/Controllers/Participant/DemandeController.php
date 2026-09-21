@@ -5,13 +5,11 @@ namespace App\Http\Controllers\Participant;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Models\Demande;
 use App\Models\TypeDemande;
 use App\Models\Praticien;
 use App\Models\Pharmacie;
-use App\Models\Salarie;
-use Carbon\Carbon;
+use App\Services\DemandeService;
 
 class DemandeController extends Controller
 {
@@ -23,8 +21,8 @@ class DemandeController extends Controller
         $salarie = Auth::guard('participant')->user();
         
         $typesDemande = TypeDemande::all();
-        $praticiens = Praticien::all();
-        $pharmacies = Pharmacie::all();
+        $praticiens = Praticien::orderBy('NOMPRAT')->get();
+        $pharmacies = Pharmacie::orderBy('NOMPHARM')->get();
         $ayantsDroit = $salarie->ayantsDroit;
 
         return view('participant.demandes.create', compact(
@@ -39,52 +37,71 @@ class DemandeController extends Controller
     /**
      * Store a newly created demande in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, DemandeService $demandeService)
     {
         $salarie = Auth::guard('participant')->user();
 
-        $validated = $request->validate([
+        $typeDemandeId = $request->input('id_type_demande');
+        $typeDemande = $typeDemandeId ? TypeDemande::find($typeDemandeId) : null;
+        $libelle = $typeDemande ? strtolower($typeDemande->libelle) : '';
+
+        $rules = [
             'id_type_demande' => 'required|exists:type_demande,id_type_demande',
-            'beneficiaire' => 'required|string', // 'salarie' or 'ayant_droit_X'
-            'id_praticien' => 'nullable|exists:praticien,id_praticien',
-            'id_pharmacie' => 'nullable|exists:pharmacie,id_pharmacie',
-            'description' => 'nullable|string',
-        ]);
+            'beneficiaire' => 'required|string',
+            'description' => 'nullable|string|max:1000',
+        ];
+
+        if (str_contains($libelle, 'bon')) {
+            $rules['id_pharmacie'] = 'required|exists:PHARMACI,PHCLEUNIK';
+            $rules['date_ordonnance'] = 'required|date|before_or_equal:today|after_or_equal:' . now()->subMonths(6)->toDateString();
+            $rules['nombre_articles'] = 'required|integer|min:1';
+        } elseif (str_contains($libelle, 'feuille')) {
+            $rules['id_praticien'] = 'required|exists:PRATICIE,PRCLEUNIK';
+        } elseif (str_contains($libelle, 'lettre')) {
+            $rules['id_praticien'] = 'required|exists:PRATICIE,PRCLEUNIK';
+            $rules['type_acte'] = 'required';
+        }
+
+        $messages = [
+            'id_type_demande.required' => 'Veuillez sélectionner un type de demande.',
+            'id_pharmacie.required' => 'La sélection d\'une pharmacie conventionnée est obligatoire pour un Bon de Commande.',
+            'id_pharmacie.exists' => 'La pharmacie sélectionnée est invalide.',
+            'date_ordonnance.required' => 'La date de l\'ordonnance est obligatoire.',
+            'date_ordonnance.before_or_equal' => 'La date de l\'ordonnance ne peut pas être dans le futur.',
+            'date_ordonnance.after_or_equal' => 'L\'ordonnance est expirée (validité maximale de 6 mois).',
+            'nombre_articles.required' => 'Le nombre d\'articles prescrits est obligatoire.',
+            'nombre_articles.min' => 'Le nombre d\'articles doit être d\'au moins 1.',
+            'id_praticien.required' => 'La sélection d\'un praticien ou établissement médical est obligatoire.',
+            'id_praticien.exists' => 'Le praticien sélectionné est invalide.',
+            'type_acte.required' => 'Veuillez préciser le type d\'acte médical pour la lettre de garantie.',
+        ];
+
+        $validated = $request->validate($rules, $messages);
 
         try {
-            DB::beginTransaction();
-
-            $demande = new Demande();
-            $demande->id_salarie = $salarie->id_salarie;
-            $demande->numero_demande = Demande::generateNumber();
-            $demande->id_type_demande = $validated['id_type_demande'];
-            $demande->statut = 'En attente';
-            $demande->date_demande = Carbon::now();
-
+            $idAyantDroit = null;
             if (str_starts_with($validated['beneficiaire'], 'ayant_droit_')) {
-                $demande->id_ayant_droit = str_replace('ayant_droit_', '', $validated['beneficiaire']);
+                $idAyantDroit = (int) str_replace('ayant_droit_', '', $validated['beneficiaire']);
             }
 
-            if (!empty($validated['id_praticien'])) {
-                $demande->id_praticien = $validated['id_praticien'];
-            }
+            $serviceData = [
+                'id_type_demande' => $validated['id_type_demande'],
+                'id_salarie' => $salarie->id_salarie ?? $salarie->IDPARTICIPANT,
+                'id_ayant_droit' => $idAyantDroit,
+                'id_pharmacie' => $request->input('id_pharmacie'),
+                'id_praticien' => $request->input('id_praticien'),
+                'date_ordonnance' => $request->input('date_ordonnance'),
+                'nombre_articles' => $request->input('nombre_articles', 1),
+                'choix_acte' => $request->input('type_acte') ?? $request->input('choix_acte'),
+                'motif' => $request->input('description'),
+                'observations' => $request->input('description'),
+            ];
 
-            if (!empty($validated['id_pharmacie'])) {
-                $demande->id_pharmacie = $validated['id_pharmacie'];
-            }
-
-            $demande->save();
-
-            // Handle specific logic based on Type Demande
-            // Note: This matches the constants in Demande model (if we use slugs or specific logic)
-            // But we keep it simple here. The Admin backend can generate the actual PDF/document once approved.
-
-            DB::commit();
+            $demandeService->traiterDemande($serviceData);
 
             return redirect()->route('participant.dashboard')->with('success', 'Votre demande a été soumise avec succès.');
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Une erreur est survenue lors de la soumission de la demande.')->withInput();
+            return back()->with('error', 'Erreur lors de la soumission : ' . $e->getMessage())->withInput();
         }
     }
 }

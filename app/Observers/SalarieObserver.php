@@ -13,43 +13,50 @@ class SalarieObserver
      */
     public function creating(Salarie $salarie): void
     {
-        if (empty($salarie->matricule)) {
-            $entreprise = \App\Models\Entreprise::find($salarie->id_entreprise);
-            
-            if ($entreprise && !empty($entreprise->code_adherent)) {
-                // Supprimer le préfixe ADH ou ADH- s'il existe
-                $codeAdherent = preg_replace('/^ADH-?/i', '', $entreprise->code_adherent);
-                
-                // Récupérer le dernier salarié de cette entreprise pour s'appuyer sur son matricule
-                $lastSalarie = \App\Models\Salarie::where('id_entreprise', $salarie->id_entreprise)
-                    ->whereNotNull('matricule')
-                    ->where('matricule', 'like', $codeAdherent . '%')
-                    ->orderByRaw('LENGTH(matricule) DESC')
-                    ->orderBy('matricule', 'desc')
-                    ->first();
+        if (empty($salarie->code_participant) && empty($salarie->CODE_PARTICIPANT)) {
+            $maxCode = \App\Models\Salarie::max('CODE_PARTICIPANT') ?? 0;
+            $salarie->CODE_PARTICIPANT = $maxCode + 1;
+        }
 
-                if ($lastSalarie && $lastSalarie->matricule !== $codeAdherent) {
-                    $lastMatricule = $lastSalarie->matricule;
-                    $numberPart = substr($lastMatricule, strlen($codeAdherent));
-                    
-                    if (is_numeric($numberPart)) {
-                        $nextNumber = intval($numberPart) + 1;
-                        // On garde le format s'il y a des zéros au début (optionnel mais propre)
-                        $padLength = strlen($numberPart);
-                        if ($padLength > 0 && $numberPart[0] === '0') {
-                            $salarie->matricule = $codeAdherent . str_pad($nextNumber, $padLength, '0', STR_PAD_LEFT);
-                        } else {
-                            $salarie->matricule = $codeAdherent . $nextNumber;
-                        }
+        if (empty($salarie->matricule)) {
+            $entrepriseId = $salarie->id_entreprise ?? $salarie->IDADHERANT;
+            $entreprise = $entrepriseId ? \App\Models\Entreprise::find($entrepriseId) : null;
+            
+            $prefix = 'MAT-';
+            if ($entreprise && !empty($entreprise->code_adherent)) {
+                $stripped = preg_replace('/^(ADH|ENT)-?/i', '', $entreprise->code_adherent);
+                $prefix = !empty($stripped) ? $stripped : $entreprise->code_adherent;
+            }
+
+            // Chercher le dernier salarié pour cette entreprise
+            $query = \App\Models\Salarie::query();
+            if ($entrepriseId) {
+                $query->where('IDADHERANT', $entrepriseId);
+            }
+            $lastSalarie = $query->whereNotNull('MATRICULE')
+                ->where('MATRICULE', 'like', $prefix . '%')
+                ->orderByRaw('LENGTH(MATRICULE) DESC')
+                ->orderBy('MATRICULE', 'desc')
+                ->first();
+
+            if ($lastSalarie && $lastSalarie->matricule !== $prefix) {
+                $lastMatricule = $lastSalarie->matricule;
+                $numberPart = substr($lastMatricule, strlen($prefix));
+                
+                if (is_numeric($numberPart)) {
+                    $nextNumber = intval($numberPart) + 1;
+                    $padLength = strlen($numberPart);
+                    if ($padLength > 0 && $numberPart[0] === '0') {
+                        $salarie->matricule = $prefix . str_pad($nextNumber, $padLength, '0', STR_PAD_LEFT);
                     } else {
-                        // Fallback de sécurité (incrémentation pure PHP sur chaîne ou count)
-                        $count = \App\Models\Salarie::where('id_entreprise', $salarie->id_entreprise)->count();
-                        $salarie->matricule = $codeAdherent . ($count + 1);
+                        $salarie->matricule = $prefix . $nextNumber;
                     }
                 } else {
-                    // C'est le premier participant pour ce code_adhérent
-                    $salarie->matricule = $codeAdherent . '1';
+                    $count = $entrepriseId ? \App\Models\Salarie::where('IDADHERANT', $entrepriseId)->count() : \App\Models\Salarie::count();
+                    $salarie->matricule = $prefix . ($count + 1);
                 }
+            } else {
+                $salarie->matricule = $prefix . '0001';
             }
         }
     }
@@ -74,7 +81,7 @@ class SalarieObserver
         ]);
         
         // Cascade de statut
-        if ($salarie->wasChanged('statut') && $salarie->statut === 'radie') {
+        if (($salarie->wasChanged('statut') || $salarie->wasChanged('PARACTIF')) && $salarie->statut === 'radie') {
             \Log::info("Dispatching SalarieRadie event");
             event(new SalarieRadie($salarie));
         }

@@ -17,6 +17,11 @@ class TypePrestation extends Model
         return $this->hasMany(Prestation::class, 'id_type_prestation', 'id_type_prestation');
     }
 
+    public function parametreCouverture(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ParametreCouverture::class, 'id_type_prestation', 'id_type_prestation');
+    }
+
     public function parametreCouvertures(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ParametreCouverture::class, 'id_type_prestation', 'id_type_prestation');

@@ -480,9 +480,22 @@
                 <img src="{{ asset('logo.png') }}" alt="IPM Mbaarum Koolute">
             </div>
             <div class="h-actions">
-                <a href="#" class="icon-btn" title="Notifications" aria-label="Notifications">
+                @php
+                    $pendingDemandesParticipant = $demandes->filter(function($d) {
+                        return in_array(mb_strtolower(trim($d->statut ?? '')), ['en attente', 'en_attente', 'en cours']);
+                    })->count();
+                    $validatedDemandesParticipant = $demandes->filter(function($d) {
+                        return in_array(mb_strtolower(trim($d->statut ?? '')), ['approuvée', 'approuvee', 'validée', 'validee']);
+                    })->count();
+                @endphp
+                <button type="button" class="icon-btn position-relative" title="Notifications" aria-label="Notifications" data-bs-toggle="modal" data-bs-target="#participantNotificationsModal" style="border:none; cursor:pointer;">
                     <i class="fas fa-bell"></i>
-                </a>
+                    @if($pendingDemandesParticipant > 0 || $validatedDemandesParticipant > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-warning border border-light rounded-circle" style="width: 9px; height: 9px;">
+                            <span class="visually-hidden">nouvelles notifications</span>
+                        </span>
+                    @endif
+                </button>
                 <form action="{{ route('participant.logout') }}" method="POST" style="margin:0">
                     @csrf
                     <button type="submit" class="icon-btn" title="Déconnexion" aria-label="Se déconnecter">
@@ -711,5 +724,91 @@
         </button>
     </form>
 </nav>
+
+{{-- ─── MODAL NOTIFICATIONS PARTICIPANT EN FRANÇAIS ─── --}}
+<div class="modal fade" id="participantNotificationsModal" tabindex="-1" aria-labelledby="participantNotificationsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px; margin: 1.25rem auto;">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-0 px-4 pt-4 pb-3" style="background: linear-gradient(135deg, #0a3060 0%, #1a6fba 100%); color: white;">
+                <div class="d-flex align-items-center">
+                    <div class="p-2 rounded-circle bg-white bg-opacity-20 me-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="fas fa-bell text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-white" id="participantNotificationsModalLabel" style="font-size: 1.05rem;">Centre de Notifications</h5>
+                        <p class="mb-0 text-white-50" style="font-size: 0.78rem;">Suivi de votre couverture santé & demandes</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body p-3" style="background: #f8fafc; max-height: 400px; overflow-y: auto;">
+                <div class="d-flex flex-column gap-2">
+                    {{-- Statut de la carte IPM --}}
+                    <div class="p-3 bg-white rounded-3 shadow-sm border border-light d-flex align-items-start gap-3">
+                        <div class="p-2 rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+                            <i class="fas fa-id-card"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="fw-bold text-dark" style="font-size: 0.88rem;">Couverture IPM Active</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill" style="font-size: 0.68rem;">En règle</span>
+                            </div>
+                            <p class="text-muted mb-0" style="font-size: 0.78rem;">
+                                Votre carte IPM #{{ $salarie->matricule }} est active. Bénéficiez du tiers-payant chez tous nos prestataires conventionnés.
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Suivi des demandes récentes --}}
+                    @if($demandes->count() > 0)
+                        @foreach($demandes->take(4) as $d)
+                            @php
+                                $statusNorm = mb_strtolower(trim($d->statut ?? ''));
+                                $isApproved = in_array($statusNorm, ['approuvée', 'approuvee', 'validée', 'validee']);
+                                $isPending = in_array($statusNorm, ['en attente', 'en_attente', 'en cours']);
+                                $isRejected = in_array($statusNorm, ['rejetée', 'rejetee', 'refusée', 'refusee']);
+                            @endphp
+                            <div class="p-3 bg-white rounded-3 shadow-sm border border-light d-flex align-items-start gap-3">
+                                <div class="p-2 rounded-circle {{ $isApproved ? 'bg-success bg-opacity-10 text-success' : ($isPending ? 'bg-warning bg-opacity-10 text-warning' : ($isRejected ? 'bg-danger bg-opacity-10 text-danger' : 'bg-primary bg-opacity-10 text-primary')) }} d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; flex-shrink: 0;">
+                                    <i class="fas {{ $isApproved ? 'fa-check-circle' : ($isPending ? 'fa-hourglass-half' : ($isRejected ? 'fa-circle-xmark' : 'fa-file-medical')) }}"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="fw-bold text-dark" style="font-size: 0.88rem;">{{ $d->numero_demande ?? 'Demande #' . $d->id_demande }}</span>
+                                        <span class="badge {{ $isApproved ? 'bg-success' : ($isPending ? 'bg-warning text-dark' : ($isRejected ? 'bg-danger' : 'bg-secondary')) }} rounded-pill" style="font-size: 0.68rem;">
+                                            {{ $d->statut }}
+                                        </span>
+                                    </div>
+                                    <p class="text-muted mb-1" style="font-size: 0.78rem;">
+                                        Type : <strong>{{ $d->typeDemande?->libelle ?? 'Prise en charge' }}</strong>
+                                        @if($d->date_demande)
+                                            · Le {{ $d->date_demande->format('d/m/Y') }}
+                                        @endif
+                                    </p>
+                                    @if($isApproved)
+                                        <span class="text-success small fw-semibold" style="font-size: 0.74rem;"><i class="fas fa-check me-1"></i>Validée, prête à utilisation</span>
+                                    @elseif($isPending)
+                                        <span class="text-warning small fw-semibold" style="font-size: 0.74rem;"><i class="fas fa-clock me-1"></i>En attente de traitement IPM</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="p-4 text-center text-muted">
+                            <i class="fas fa-bell-slash fs-2 mb-2 text-secondary"></i>
+                            <div class="fw-semibold">Aucune notification récente</div>
+                            <div class="small">Vos notifications et alertes apparaîtront ici.</div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light justify-content-center">
+                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

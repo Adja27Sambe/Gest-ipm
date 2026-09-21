@@ -13,14 +13,16 @@ class FacturationController extends Controller
 {
     private function getPartenaires()
     {
-        $praticiens = Praticien::select('id_praticien as id', 'nom')->get()->map(function($p) {
+        $praticiens = Praticien::all()->map(function($p) {
             $p->type = 'praticien';
+            $p->id = $p->id_praticien;
             $p->value = 'praticien_' . $p->id;
             return $p;
         });
         
-        $pharmacies = Pharmacie::select('id_pharmacie as id', 'nom')->get()->map(function($p) {
+        $pharmacies = Pharmacie::all()->map(function($p) {
             $p->type = 'pharmacie';
+            $p->id = $p->id_pharmacie;
             $p->value = 'pharmacie_' . $p->id;
             return $p;
         });
@@ -35,25 +37,62 @@ class FacturationController extends Controller
     {
         $partenaires = $this->getPartenaires();
         
-        $query = Facture::with(['praticien', 'pharmacie'])
-            ->withSum('paiementPrestataires', 'montant')
-            ->whereIn('statut_paiement', ['en_attente', 'partiellement_payee']);
+        $query = Facture::with(['praticien', 'pharmacie', 'paiementPrestataires'])
+            ->withSum('paiementPrestataires', 'montant');
+            
+        // Filtre de statut
+        if ($request->has('statut') && $request->statut === 'impayees') {
+            $query->whereIn('statut_paiement', ['en_attente', 'partiellement_payee']);
+        } elseif ($request->has('statut') && $request->statut === 'payees') {
+            $query->where('statut_paiement', 'payee');
+        } else {
+            // Par défaut, pas de filtre (on affiche toutes les factures)
+        }
         
-        if ($request->has('partenaire') && $request->partenaire != '') {
-            $parts = explode('_', $request->partenaire);
-            if (count($parts) == 2) {
+        // Recherche générale
+        if ($request->filled('search')) {
+            $searchTerm = trim($request->search);
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('numero_facture', 'like', "%{$searchTerm}%")
+                  ->orWhere('id_facture', 'like', "%{$searchTerm}%")
+                  ->orWhereHas('praticien', function($qp) use ($searchTerm) {
+                      $qp->where('nom', 'like', "%{$searchTerm}%")
+                         ->orWhere('NOMPRAT', 'like', "%{$searchTerm}%");
+                  })
+                  ->orWhereHas('pharmacie', function($qph) use ($searchTerm) {
+                      $qph->where('nom', 'like', "%{$searchTerm}%")
+                         ->orWhere('NOMPHARM', 'like', "%{$searchTerm}%");
+                  });
+            });
+        }
+
+        // Filtre Partenaire de santé (champ de saisie ou code partenaire)
+        if ($request->filled('partenaire')) {
+            $partenaireTerm = trim($request->partenaire);
+            $parts = explode('_', $partenaireTerm);
+            if (count($parts) == 2 && in_array($parts[0], ['praticien', 'pharmacie']) && is_numeric($parts[1])) {
                 if ($parts[0] === 'praticien') {
                     $query->where('id_praticien', $parts[1]);
                 } elseif ($parts[0] === 'pharmacie') {
                     $query->where('id_pharmacie', $parts[1]);
                 }
+            } else {
+                $query->where(function($q) use ($partenaireTerm) {
+                    $q->whereHas('praticien', function($qp) use ($partenaireTerm) {
+                        $qp->where('nom', 'like', "%{$partenaireTerm}%")
+                           ->orWhere('NOMPRAT', 'like', "%{$partenaireTerm}%");
+                    })->orWhereHas('pharmacie', function($qph) use ($partenaireTerm) {
+                        $qph->where('nom', 'like', "%{$partenaireTerm}%")
+                           ->orWhere('NOMPHARM', 'like', "%{$partenaireTerm}%");
+                    });
+                });
             }
         }
         
-        $perPage = $request->input('per_page', 5);
+        $perPage = $request->input('per_page', 10);
         $factures = $query->orderBy('date_facture', 'desc')->orderBy('id_facture', 'desc')->paginate($perPage)->withQueryString();
         
-        // Optimisation majeure : Calcul du total du en utilisant l'agrégat SQL au lieu de l'accesseur N+1
+        // Calcul du total du
         $totalDu = (clone $query)->get()->sum(function($facture) {
             return ($facture->montant ?? 0) - ($facture->paiement_prestataires_sum_montant ?? 0);
         });
@@ -150,7 +189,7 @@ class FacturationController extends Controller
      */
     public function show($id)
     {
-        $facture = Facture::with(['praticien', 'pharmacie', 'prestations', 'paiementPrestataires'])->findOrFail($id);
+        $facture = Facture::with(['praticien', 'pharmacie', 'prestations.demande.salarie', 'prestations.typePrestation', 'paiementPrestataires'])->findOrFail($id);
         return view('factures.show', compact('facture'));
     }
 
@@ -172,7 +211,7 @@ class FacturationController extends Controller
             'date_paiement' => now(),
             'montant' => $request->montant,
             'mode_paiement' => $request->mode_paiement,
-            'reference_transaction' => $request->reference_transaction
+            'reference' => $request->reference_transaction
         ]);
 
         return redirect()->route('factures.show', $id)->with('success', 'Paiement enregistré avec succès.');

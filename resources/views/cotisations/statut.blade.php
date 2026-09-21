@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-5">
     <div>
         <h2 class="fw-bold mb-1 text-dark" style="letter-spacing: -0.5px;">Statuts des Cotisations</h2>
-        <p class="text-muted mb-0">Suivi individuel par salarié et par période</p>
+        <p class="text-muted mb-0">Suivi individuel par participant et par période</p>
     </div>
     <a href="{{ route('cotisations.index') }}" class="btn btn-light rounded-pill px-4 shadow-sm border">
         <i class="bi bi-pie-chart-fill text-primary me-2"></i> Rapport global
@@ -23,11 +23,11 @@
     <div class="card-body p-4">
         <form action="{{ route('cotisations.statut') }}" method="GET" class="row g-3 align-items-end">
             <div class="col-md-5">
-                <label class="form-label text-muted small fw-bold text-uppercase tracking-wide">Salarié</label>
+                <label class="form-label text-muted small fw-bold text-uppercase tracking-wide">Participant</label>
                 <div class="input-group input-group-lg bg-light rounded-3">
                     <span class="input-group-text bg-transparent border-0"><i class="bi bi-person text-muted"></i></span>
                     <select name="id_salarie" class="form-select bg-transparent border-0 shadow-none">
-                        <option value="">Tous les salariés</option>
+                        <option value="">Tous les participants</option>
                         @foreach($salaries as $salarie)
                             <option value="{{ $salarie->id_salarie }}" {{ request('id_salarie') == $salarie->id_salarie ? 'selected' : '' }}>
                                 {{ $salarie->nom }} {{ $salarie->prenom }} ({{ $salarie->matricule }})
@@ -62,7 +62,7 @@
             <thead class="bg-light">
                 <tr>
                     <th class="py-3 px-4 text-muted small fw-bold text-uppercase">Période</th>
-                    <th class="py-3 px-4 text-muted small fw-bold text-uppercase">Salarié</th>
+                    <th class="py-3 px-4 text-muted small fw-bold text-uppercase">Participant</th>
                     <th class="py-3 px-4 text-muted small fw-bold text-uppercase text-center">Salaire & Taux</th>
                     <th class="py-3 px-4 text-muted small fw-bold text-uppercase">Montant</th>
                     <th class="py-3 px-4 text-muted small fw-bold text-uppercase">Statut</th>

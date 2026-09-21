@@ -18,7 +18,7 @@ class DossierMedicalController extends Controller
     public function index()
     {
         if (!auth()->user()->hasPermission('consulter_dossier_medical')) {
-            return redirect()->route('demandes.index')->with('error', 'Accès interdit au dossier médical.');
+            return redirect()->route('demandes.index')->with('error', 'Accès interdit à l\'historique demande.');
         }
 
         $salaries = Salarie::with('ayantsDroit')->get();
@@ -31,7 +31,7 @@ class DossierMedicalController extends Controller
     public function show(Request $request, $type, $id)
     {
         if (!auth()->user()->hasPermission('consulter_dossier_medical')) {
-            return redirect()->route('demandes.index')->with('error', 'Accès interdit au dossier médical.');
+            return redirect()->route('demandes.index')->with('error', 'Accès interdit à l\'historique demande.');
         }
 
         // 1. Validation du type
@@ -45,9 +45,9 @@ class DossierMedicalController extends Controller
         // 2. Traçabilité OBLIGATOIRE de la LECTURE
         HistoriqueMouvement::create([
             'date_heure' => now(),
-            'module' => 'Dossier Médical (Web)',
+            'module' => 'Historique demande (Web)',
             'action' => 'LECTURE',
-            'description' => "Consultation du dossier médical complet de: " . $beneficiaire->prenom . " " . $beneficiaire->nom . " (Type: $type, ID: $id)",
+            'description' => "Consultation de l'historique complet de: " . $beneficiaire->prenom . " " . $beneficiaire->nom . " (Type: $type, ID: $id)",
             'adresse_ip' => $request->ip(),
             'id_utilisateur' => auth()->id(),
         ]);
@@ -71,7 +71,7 @@ class DossierMedicalController extends Controller
     public function store(Request $request, $type, $id)
     {
         if (!auth()->user()->hasPermission('consulter_dossier_medical')) {
-            return redirect()->route('demandes.index')->with('error', 'Accès interdit au dossier médical.');
+            return redirect()->route('demandes.index')->with('error', 'Accès interdit à l\'historique demande.');
         }
 
         $validated = $request->validate([
@@ -112,6 +112,6 @@ class DossierMedicalController extends Controller
         }
 
         return redirect()->route('dossier-medical.show', ['type' => $type, 'id' => $id])
-            ->with('success', 'Entrée ajoutée au dossier médical avec succès.');
+            ->with('success', 'Entrée ajoutée à l\'historique demande avec succès.');
     }
 }

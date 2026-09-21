@@ -32,6 +32,11 @@ class DemandeService
             if ($parametre) {
                 $tauxPriseCharge = $parametre->taux_prise_charge;
             }
+        } elseif (str_contains($libelleType, 'bon de commande')) {
+            $parametre = ParametreCouverture::whereHas('typePrestation', function($q) {
+                $q->where('libelle', 'like', '%pharmacie%');
+            })->first();
+            $tauxPriseCharge = $parametre ? $parametre->taux_prise_charge : 75.00;
         }
 
         return DB::transaction(function () use ($data, $libelleType, $tauxPriseCharge, $typeDemande) {
@@ -95,32 +100,42 @@ class DemandeService
     private function creerBonCommande(Demande $demande, ?float $tauxPriseCharge, array $data)
     {
         return BonCommande::create([
+            'numero_bon' => $this->generateUniqueNumber('BC', 'bon_commande', 'numero_bon'),
             'date_emission' => Carbon::now(),
-            'taux_prise_charge' => $tauxPriseCharge ?? 80.00,
+            'date_ordonnance' => $data['date_ordonnance'] ?? null,
+            'nombre_articles' => $data['nombre_articles'] ?? 1,
+            'taux_prise_charge' => $tauxPriseCharge ?? 75.00,
             'date_validite' => Carbon::now()->endOfMonth(),
-            'id_demande' => $demande->id_demande
+            'id_demande' => $demande->id_demande,
         ]);
     }
 
     private function creerFeuilleMaladie(Demande $demande, array $data)
     {
         return FeuilleMaladie::create([
+            'numero_feuille' => $this->generateUniqueNumber('FM', 'feuille_maladie', 'numero_feuille'),
             'date_emission' => Carbon::now(),
             'diagnostic' => $data['diagnostic'] ?? null,
             'observations' => $data['observations'] ?? null,
-            'id_demande' => $demande->id_demande
+            'id_demande' => $demande->id_demande,
         ]);
     }
 
     private function creerLettreGarantie(Demande $demande, ?float $tauxPriseCharge, array $data)
     {
+        $choixActe = $data['choix_acte'] ?? ($data['type_acte'] ?? null);
+        if (is_array($choixActe)) {
+            $choixActe = implode(', ', $choixActe);
+        }
+
         return LettreGarantie::create([
+            'numero_lettre' => $this->generateUniqueNumber('LG', 'lettre_garantie', 'numero_lettre'),
             'date_emission' => Carbon::now(),
-            'taux_prise_charge' => $tauxPriseCharge ?? 80.00,
+            'taux_prise_charge' => $tauxPriseCharge ?? 70.00,
             'date_validite' => Carbon::now()->endOfMonth(),
             'observations' => $data['observations'] ?? null,
-            'choix_acte' => $data['choix_acte'] ?? null,
-            'id_demande' => $demande->id_demande
+            'choix_acte' => $choixActe,
+            'id_demande' => $demande->id_demande,
         ]);
     }
 }

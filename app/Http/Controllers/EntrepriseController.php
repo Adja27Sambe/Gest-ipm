@@ -14,16 +14,16 @@ class EntrepriseController extends Controller
         $query = Entreprise::withCount('salaries');
 
         if ($request->filled('search')) {
-            $query->where('raison_sociale', 'like', '%' . $request->search . '%')
-                  ->orWhere('code_adherent', 'like', '%' . $request->search . '%');
+            $query->where('ADHERANT', 'like', '%' . $request->search . '%')
+                  ->orWhere('CODEADHERANT', 'like', '%' . $request->search . '%');
         }
 
         if ($request->filled('statut')) {
-            $query->where('statut', $request->statut);
+            $query->where('ADACTIF', $request->statut);
         }
 
         $perPage = $request->input('per_page', 5);
-        $entreprises = $query->latest()->paginate($perPage)->withQueryString();
+        $entreprises = $query->latest('IDADHERANT')->paginate($perPage)->withQueryString();
         
         return view('entreprises.index', compact('entreprises'));
     }
@@ -60,7 +60,7 @@ class EntrepriseController extends Controller
     {
         if ($entreprise->salaries()->exists()) {
             return redirect()->route('entreprises.index')
-                ->with('error', 'Impossible de supprimer cette entreprise car des salariés y sont rattachés.');
+                ->with('error', 'Impossible de supprimer cette entreprise car des participants y sont rattachés.');
         }
 
         $entreprise->delete();
@@ -76,11 +76,11 @@ class EntrepriseController extends Controller
         // Supprimer le préfixe ADH ou ADH- s'il existe
         $codeAdherent = preg_replace('/^ADH-?/i', '', $entreprise->code_adherent);
         
-        $lastSalarie = \App\Models\Salarie::where('id_entreprise', $entreprise->id_entreprise)
-            ->whereNotNull('matricule')
-            ->where('matricule', 'like', $codeAdherent . '%')
-            ->orderByRaw('LENGTH(matricule) DESC')
-            ->orderBy('matricule', 'desc')
+        $lastSalarie = \App\Models\Salarie::where('IDADHERANT', $entreprise->id_entreprise)
+            ->whereNotNull('MATRICULE')
+            ->where('MATRICULE', 'like', $codeAdherent . '%')
+            ->orderByRaw('LENGTH(MATRICULE) DESC')
+            ->orderBy('MATRICULE', 'desc')
             ->first();
 
         if ($lastSalarie && $lastSalarie->matricule !== $codeAdherent) {
@@ -96,7 +96,7 @@ class EntrepriseController extends Controller
                     $matricule = $codeAdherent . $nextNumber;
                 }
             } else {
-                $count = \App\Models\Salarie::where('id_entreprise', $entreprise->id_entreprise)->count();
+                $count = \App\Models\Salarie::where('IDADHERANT', $entreprise->id_entreprise)->count();
                 $matricule = $codeAdherent . ($count + 1);
             }
         } else {

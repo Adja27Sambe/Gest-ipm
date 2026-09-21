@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h3 fw-bold text-dark mb-0">Validation des Demandes</h2>
+    <h2 class="h3 fw-bold text-dark mb-0">Validation des Prises en charge</h2>
 </div>
 
 <div class="card border-0 shadow-sm mb-4 rounded-4">
@@ -11,7 +11,7 @@
             <div class="col-md-8">
                 <div class="input-group">
                     <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique (n° demande, bénéficiaire)..." value="{{ request('search') }}" autocomplete="off">
+                    <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique (n° prise en charge, bénéficiaire, matricule)..." value="{{ request('search') }}" autocomplete="off">
                 </div>
             </div>
             <div class="col-md-4 d-flex align-items-center justify-content-end">
@@ -34,8 +34,8 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Date & Heure</th>
-                        <th>Type de Demande</th>
-                        <th>N° Demande</th>
+                        <th>Type de Prise en charge</th>
+                        <th>N° Prise en charge</th>
                         <th>Bénéficiaire (Participant/Ayant-droit)</th>
                         <th>Statut</th>
                         <th class="text-end pe-4">Actions</th>
@@ -72,24 +72,26 @@
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group btn-group-sm" role="group" aria-label="Actions validation">
-                                <!-- Aperçu PDF -->
+                                <!-- Aperçu PDF (Accessible au lecteur) -->
                                 <a href="{{ route('demandes.pdf', $demande->id_demande) }}" target="_blank" class="btn btn-outline-primary" title="Aperçu PDF">
                                     <i class="bi bi-eye"></i>
                                 </a>
+                                @canedit
                                 <!-- Approuver -->
-                                <form action="{{ route('demandes.approuver', $demande->id_demande) }}" method="POST" class="d-inline" onsubmit="return confirm('Voulez-vous vraiment approuver cette demande ?');">
+                                <form action="{{ route('demandes.approuver', $demande->id_demande) }}" method="POST" class="d-inline" onsubmit="return confirm('Voulez-vous vraiment approuver cette prise en charge ?');">
                                     @csrf
                                     <button type="submit" class="btn btn-outline-success border-start-0" title="Approuver">
                                         <i class="bi bi-check-lg"></i>
                                     </button>
                                 </form>
                                 <!-- Rejeter -->
-                                <form action="{{ route('demandes.rejeter', $demande->id_demande) }}" method="POST" class="d-inline" onsubmit="return confirm('Voulez-vous vraiment rejeter cette demande ?');">
+                                <form action="{{ route('demandes.rejeter', $demande->id_demande) }}" method="POST" class="d-inline" onsubmit="return confirm('Voulez-vous vraiment rejeter cette prise en charge ?');">
                                     @csrf
                                     <button type="submit" class="btn btn-outline-danger border-start-0" title="Rejeter">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
                                 </form>
+                                @endcanedit
                             </div>
                         </td>
                     </tr>
@@ -97,7 +99,7 @@
                     <tr>
                         <td colspan="6" class="text-center py-5 text-muted">
                             <i class="bi bi-check2-circle fs-1 d-block mb-3 opacity-50 text-success"></i>
-                            Aucune demande en attente de validation.
+                            Aucune prise en charge en attente de validation.
                         </td>
                     </tr>
                     @endforelse
@@ -109,7 +111,7 @@
 
 <div class="d-flex justify-content-between align-items-center mt-4">
     <div class="text-muted small">
-        Affichage de {{ $demandes->firstItem() ?? 0 }} à {{ $demandes->lastItem() ?? 0 }} sur {{ $demandes->total() }} demandes
+        Affichage de {{ $demandes->firstItem() ?? 0 }} à {{ $demandes->lastItem() ?? 0 }} sur {{ $demandes->total() }} prises en charge
     </div>
     <div>
         {{ $demandes->links('pagination::bootstrap-5') }}

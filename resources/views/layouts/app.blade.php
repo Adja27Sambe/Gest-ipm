@@ -348,6 +348,8 @@
             .main-container { padding: 1rem; }
         }
     </style>
+    <!-- Tom Select CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="brand-border"></div>
@@ -371,10 +373,10 @@
                     
                     @can('gerer_demandes')
                     <a href="{{ route('demandes.index') }}" class="sidebar-link {{ request()->routeIs('demandes.*') && !request()->routeIs('demandes.validation.*') ? 'active' : '' }}">
-                        <i class="bi bi-file-earmark-text"></i> Demandes
+                        <i class="bi bi-file-earmark-text"></i> Prises en charge
                     </a>
                     <a href="{{ route('demandes.validation.index') }}" class="sidebar-link {{ request()->routeIs('demandes.validation.*') ? 'active' : '' }}">
-                        <i class="bi bi-check2-circle"></i> Validation Demandes
+                        <i class="bi bi-check2-circle"></i> Validation Prises en charge
                     </a>
                     @endcan
                     @can('gerer_entreprises')
@@ -396,9 +398,8 @@
                     </a>
                     @endcan
                     @can('gerer_prestations')
-
                     <a href="{{ route('prestations.index') }}" class="sidebar-link {{ request()->routeIs('prestations.*') ? 'active' : '' }}">
-                        <i class="bi bi-activity"></i> Prestations
+                        <i class="bi bi-receipt"></i> Facturation
                     </a>
                     @endcan
                     @can('gerer_cotisations')
@@ -408,7 +409,7 @@
                     @endcan
                     @can('Gérer la facturation')
                     <a href="{{ route('factures.index') }}" class="sidebar-link {{ request()->routeIs('factures.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i> Factures
+                        <i class="bi bi-wallet2"></i> Factures Prestataires
                     </a>
                     @endcan
                     
@@ -416,7 +417,7 @@
                     
                     @can('consulter_dossier_medical')
                     <a href="{{ route('dossier-medical.index') }}" class="sidebar-link {{ request()->routeIs('dossier-medical.*') ? 'active' : '' }}">
-                        <i class="bi bi-heart-pulse"></i> Dossier Médical
+                        <i class="bi bi-heart-pulse"></i> Historique demande
                     </a>
                     @endcan
                     @can('gerer_pieces_jointes')
@@ -473,13 +474,126 @@
 
                     @auth
                     <div class="ms-auto d-flex align-items-center">
+                        @php
+                            $userNotifications = auth()->user()->notifications()->where('lu', false)->latest()->take(5)->get();
+                            $pendingDemandesCount = \App\Models\Demande::whereIn('statut', ['en_attente', 'En attente', 'En cours'])->count();
+                            $expiringConventionsCount = \App\Models\Convention::where('statut', 'active')
+                                ->whereBetween('date_fin', [now()->toDateString(), now()->addDays(30)->toDateString()])
+                                ->count();
+                            $totalAlertsCount = $userNotifications->count() + ($pendingDemandesCount > 0 ? 1 : 0) + ($expiringConventionsCount > 0 ? 1 : 0);
+                        @endphp
+
+                        <!-- Dropdown Notifications en Français -->
+                        <div class="dropdown me-3">
+                            <a class="nav-link btn btn-light position-relative p-2 rounded-circle shadow-sm d-flex align-items-center justify-content-center" href="#" id="navbarNotificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: 42px; height: 42px; color: var(--primary-blue); border: 1px solid #eef0f3; transition: all 0.2s;" title="Notifications du système">
+                                <i class="bi bi-bell-fill fs-5"></i>
+                                @if($totalAlertsCount > 0)
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light shadow-sm" style="font-size: 0.65rem;">
+                                        {{ $totalAlertsCount > 9 ? '9+' : $totalAlertsCount }}
+                                        <span class="visually-hidden">notifications non lues</span>
+                                    </span>
+                                @endif
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 mt-2 p-0" aria-labelledby="navbarNotificationDropdown" style="width: 360px; max-width: 90vw; overflow: hidden;">
+                                <div class="px-3 py-3 border-bottom d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-bell-fill me-2 fs-5"></i>
+                                        <span class="fw-bold">Centre de Notifications</span>
+                                    </div>
+                                    @if($totalAlertsCount > 0)
+                                        <span class="badge bg-danger rounded-pill px-2.5 py-1">{{ $totalAlertsCount }} alerte(s)</span>
+                                    @else
+                                        <span class="badge bg-success rounded-pill px-2.5 py-1">À jour</span>
+                                    @endif
+                                </div>
+                                <div class="list-group list-group-flush" style="max-height: 340px; overflow-y: auto;">
+                                    @if($pendingDemandesCount > 0)
+                                        <a href="{{ route('demandes.index') }}" class="list-group-item list-group-item-action py-3 px-3 border-0 border-bottom d-flex align-items-start">
+                                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                <i class="bi bi-hourglass-split fs-5"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <span class="fw-bold text-dark" style="font-size: 0.9rem;">Prises en charge</span>
+                                                    <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.7rem;">À valider</span>
+                                                </div>
+                                                <div class="text-muted small">
+                                                    {{ $pendingDemandesCount }} prise(s) en charge en attente d'approbation médicale.
+                                                </div>
+                                            </div>
+                                        </a>
+                                    @endif
+
+                                    @if($expiringConventionsCount > 0)
+                                        <a href="{{ route('conventions.index') }}" class="list-group-item list-group-item-action py-3 px-3 border-0 border-bottom d-flex align-items-start">
+                                            <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                <i class="bi bi-exclamation-octagon fs-5"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <span class="fw-bold text-dark" style="font-size: 0.9rem;">Conventions prestataires</span>
+                                                    <span class="badge bg-danger rounded-pill" style="font-size: 0.7rem;">Expiration</span>
+                                                </div>
+                                                <div class="text-muted small">
+                                                    {{ $expiringConventionsCount }} convention(s) arrivent à échéance dans les 30 jours.
+                                                </div>
+                                            </div>
+                                        </a>
+                                    @endif
+
+                                    @forelse($userNotifications as $notif)
+                                        <div class="list-group-item py-3 px-3 border-0 border-bottom d-flex align-items-start">
+                                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; flex-shrink: 0;">
+                                                <i class="bi bi-info-circle fs-5"></i>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $notif->titre }}</div>
+                                                <div class="text-muted small mb-1">{{ $notif->message }}</div>
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-clock me-1"></i>{{ $notif->created_at?->diffForHumans() ?? 'Récemment' }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        @if($pendingDemandesCount == 0 && $expiringConventionsCount == 0)
+                                            <div class="py-4 px-3 text-center text-muted">
+                                                <i class="bi bi-check-circle-fill text-success fs-2 d-block mb-2"></i>
+                                                <div class="fw-semibold">Aucune alerte en attente</div>
+                                                <div class="small">Toutes les opérations et prises en charge sont à jour.</div>
+                                            </div>
+                                        @endif
+                                    @endforelse
+                                </div>
+                                <div class="p-2 text-center bg-light border-top">
+                                    <a href="{{ route('demandes.index') }}" class="btn btn-sm btn-link text-decoration-none fw-semibold text-primary" style="font-size: 0.82rem;">
+                                        Voir toutes les demandes et alertes <i class="bi bi-arrow-right ms-1"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        @readonly
+                        <div class="d-flex align-items-center me-2">
+                            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning px-3 py-2 d-flex align-items-center fw-bold shadow-sm" style="font-size: 0.8rem;">
+                                <i class="bi bi-eye-fill me-1 text-warning"></i> Mode Consultation / Lecteur
+                            </span>
+                        </div>
+                        @endreadonly
+
+                        <!-- Profil Utilisateur -->
                         <div class="dropdown">
                             <a class="nav-link dropdown-toggle btn btn-light px-3 py-2 rounded-pill shadow-sm d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="color: var(--primary-blue) !important; font-weight: 600; border: 1px solid #eef0f3;">
                                 <i class="bi bi-person-circle me-2 fs-5"></i> 
                                 <span class="d-none d-md-inline">{{ auth()->user()->login }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 mt-2" aria-labelledby="navbarDropdown">
-                                <li><h6 class="dropdown-header text-center">{{ auth()->user()->login }}</h6></li>
+                                <li>
+                                    <h6 class="dropdown-header text-center">
+                                        {{ auth()->user()->login }}
+                                        <br>
+                                        <span class="badge bg-secondary mt-1">{{ auth()->user()->role->libelle ?? 'Utilisateur' }}</span>
+                                    </h6>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form action="{{ route('logout') }}" method="POST">
@@ -521,6 +635,20 @@
                 @if(session('error'))
                     <div class="alert alert-danger alert-dismissible fade show shadow-sm mb-4" role="alert">
                         <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if(session('warning'))
+                    <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4" role="alert">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i> {{ session('warning') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if(session('info'))
+                    <div class="alert alert-info alert-dismissible fade show shadow-sm mb-4" role="alert">
+                        <i class="bi bi-info-circle-fill me-2"></i> {{ session('info') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 @endif
@@ -665,6 +793,7 @@
             .catch(err => console.error('Erreur recherche dynamique:', err));
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
     @stack('scripts')
 </body>
 </html>

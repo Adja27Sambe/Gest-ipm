@@ -17,15 +17,15 @@ class DossierMedicalApiController extends Controller
         // 1. Vérification stricte des permissions via la Policy manuellement 
         // ou via $this->authorize('viewAny', HistoriqueMedical::class);
         if (!auth()->user()->hasPermission('consulter_dossier_medical')) {
-            return response()->json(['message' => 'Accès interdit. Vous n\'avez pas la permission de consulter les dossiers médicaux.'], 403);
+            return response()->json(['message' => 'Accès interdit. Vous n\'avez pas la permission de consulter l\'historique demande.'], 403);
         }
 
         // 2. Journalisation OBLIGATOIRE de la LECTURE
         HistoriqueMouvement::create([
             'date_heure' => now(),
-            'module' => 'Dossier Médical',
+            'module' => 'Historique demande',
             'action' => 'LECTURE',
-            'description' => "Consultation du dossier médical complet. (Type: $beneficiaireType, ID: $idBeneficiaire)",
+            'description' => "Consultation de l'historique complet. (Type: $beneficiaireType, ID: $idBeneficiaire)",
             'adresse_ip' => $request->ip(),
             'id_utilisateur' => auth()->id(),
         ]);
@@ -110,7 +110,7 @@ class DossierMedicalApiController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Entrée ajoutée au dossier médical.',
+            'message' => 'Entrée ajoutée à l\'historique demande.',
             'data' => $historique->load('prescriptions')
         ], 201);
     }

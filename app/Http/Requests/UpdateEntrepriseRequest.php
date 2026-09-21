@@ -19,14 +19,13 @@ class UpdateEntrepriseRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:50',
-                Rule::unique('entreprise')->ignore($this->entreprise->id_entreprise ?? $this->route('entreprise'), 'id_entreprise')
+                Rule::unique('ADHERANT', 'CODEADHERANT')->ignore($this->route('entreprise')->id ?? $this->route('entreprise'), 'IDADHERANT')
             ],
             'code_comptable' => 'nullable|string|max:50',
             'raison_sociale' => 'sometimes|required|string|max:255',
             'adresse' => 'nullable|string',
             'telephone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
-            'date_adhesion' => 'nullable|date',
         ];
     }
 }

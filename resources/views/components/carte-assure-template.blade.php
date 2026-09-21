@@ -10,11 +10,46 @@
     $dateNaissance = $salarie->date_naissance ? \Carbon\Carbon::parse($salarie->date_naissance)->format('d/m/Y') : 'XXXX';
 @endphp
 
+<style>
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .carte-assure-wrapper, .carte-assure-wrapper * {
+        visibility: visible;
+    }
+    .carte-assure-wrapper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    /* Hide buttons and badges */
+    .carte-assure-wrapper > .d-flex.justify-content-center,
+    .carte-card-wrapper > .d-flex.justify-content-between {
+        display: none !important;
+    }
+    /* Force display verso if hidden */
+    #verso-wrapper-{{ $carte->id_carte }} {
+        display: block !important;
+        margin-top: 30px !important;
+    }
+}
+</style>
+
 <div class="carte-assure-wrapper d-flex flex-column align-items-center gap-3 py-2">
     <!-- Controls Header -->
-    <div class="d-flex justify-content-center mb-2 w-100">
+    <div class="d-flex justify-content-center mb-2 w-100 gap-2 flex-wrap">
         <button type="button" class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-bold fs-6" onclick="downloadBothCartesPNG('recto-{{ $carte->id_carte }}', 'verso-{{ $carte->id_carte }}', '{{ $matricule }}')">
             <i class="bi bi-download me-2"></i>Télécharger Recto-Verso (PNG)
+        </button>
+        <a href="{{ route('cartes-assurees.download', $carte->id_carte) }}" class="btn btn-outline-danger rounded-pill px-4 py-2 shadow-sm fw-bold fs-6" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-2"></i>Télécharger (PDF)
+        </a>
+        <button type="button" class="btn btn-primary rounded-pill px-4 py-2 shadow-sm fw-bold fs-6" onclick="window.print()">
+            <i class="bi bi-printer me-2"></i>Imprimer
         </button>
     </div>
 
@@ -45,8 +80,8 @@
                     <div style="width: 34%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                         <!-- Photo circle with double blue/green ring -->
                         <div style="width: 84px; height: 84px; border-radius: 50%; border: 3.5px solid #005689; outline: 2px solid #076B27; outline-offset: -5px; overflow: hidden; background: #eef2f5; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.12);">
-                            @if($salarie->photo)
-                                <img src="{{ $salarie->photo->url }}" alt="Photo" style="width: 100%; height: 100%; object-fit: cover;">
+                            @if($salarie->photo_url)
+                                <img src="{{ $salarie->photo_url }}" alt="Photo" style="width: 100%; height: 100%; object-fit: cover;">
                             @else
                                 <svg width="46" height="46" viewBox="0 0 24 24" fill="#90a4ae"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                             @endif

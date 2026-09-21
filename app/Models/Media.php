@@ -8,7 +8,6 @@ use App\Traits\Auditable;
 class Media extends Model
 {
     use Auditable;
-
     protected $table = 'media';
     protected $primaryKey = 'id_media';
     protected $guarded = [];

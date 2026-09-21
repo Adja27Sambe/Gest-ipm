@@ -14,12 +14,29 @@ class AyantDroit extends Model
 
     public function salarie(): BelongsTo
     {
-        return $this->belongsTo(Salarie::class, 'id_salarie');
+        return $this->belongsTo(Salarie::class, 'id_salarie', 'IDPARTICIPANT');
     }
 
     public function photo(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'id_photo_media', 'id_media');
+    }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if ($this->photo && is_object($this->photo) && isset($this->photo->url)) {
+            return $this->photo->url;
+        }
+        if (!empty($this->attributes['photo'])) {
+            $p = $this->attributes['photo'];
+            if (is_string($p)) {
+                if (str_starts_with($p, 'http://') || str_starts_with($p, 'https://')) {
+                    return $p;
+                }
+                return asset('storage/' . ltrim($p, '/'));
+            }
+        }
+        return null;
     }
 
 

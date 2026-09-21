@@ -106,47 +106,57 @@
                         Enregistrer un paiement
                     </h5>
                     
-                    @if($facture->soldeRestant > 0)
-                        <form action="{{ route('factures.paiements.store', $facture->id_facture) }}" method="POST">
-                            @csrf
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-medium">Montant à payer</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-cash"></i></span>
-                                    <input type="number" step="0.01" max="{{ $facture->soldeRestant }}" name="montant" class="form-control border-start-0 ps-0 fw-bold" value="{{ $facture->soldeRestant }}" required>
-                                    <span class="input-group-text bg-light text-muted">FCFA</span>
+                    @canedit
+                        @if($facture->soldeRestant > 0)
+                            <form action="{{ route('factures.paiements.store', $facture->id_facture) }}" method="POST">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small fw-medium">Montant à payer</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-cash"></i></span>
+                                        <input type="number" step="0.01" max="{{ $facture->soldeRestant }}" name="montant" class="form-control border-start-0 ps-0 fw-bold" value="{{ $facture->soldeRestant }}" required>
+                                        <span class="input-group-text bg-light text-muted">FCFA</span>
+                                    </div>
+                                    <div class="form-text">Maximum autorisé : {{ number_format($facture->soldeRestant, 0, ',', ' ') }} FCFA</div>
                                 </div>
-                                <div class="form-text">Maximum autorisé : {{ number_format($facture->soldeRestant, 0, ',', ' ') }} FCFA</div>
-                            </div>
 
-                            <div class="row g-3 mb-4">
-                                <div class="col-md-6">
-                                    <label class="form-label text-muted small fw-medium">Mode de paiement</label>
-                                    <select name="mode_paiement" class="form-select border-light-subtle bg-light" required>
-                                        <option value="virement">Virement Bancaire</option>
-                                        <option value="cheque">Chèque</option>
-                                        <option value="especes">Espèces</option>
-                                    </select>
+                                <div class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label text-muted small fw-medium">Mode de paiement</label>
+                                        <select name="mode_paiement" class="form-select border-light-subtle bg-light" required>
+                                            <option value="virement">Virement Bancaire</option>
+                                            <option value="cheque">Chèque</option>
+                                            <option value="especes">Espèces</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-muted small fw-medium">Référence transaction</label>
+                                        <input type="text" name="reference_transaction" class="form-control" placeholder="N° Chèque/Virement...">
+                                    </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label text-muted small fw-medium">Référence transaction</label>
-                                    <input type="text" name="reference_transaction" class="form-control" placeholder="N° Chèque/Virement...">
-                                </div>
-                            </div>
 
-                            <button type="submit" class="btn btn-success w-100 rounded-pill shadow-sm py-2 fw-medium">
-                                <i class="bi bi-check-circle me-2"></i>Valider le paiement
-                            </button>
-                        </form>
+                                <button type="submit" class="btn btn-success w-100 rounded-pill shadow-sm py-2 fw-medium">
+                                    <i class="bi bi-check-circle me-2"></i>Valider le paiement
+                                </button>
+                            </form>
+                        @else
+                            <div class="d-flex flex-column align-items-center justify-content-center h-100 py-4 text-center">
+                                <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="bi bi-check2-all" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark">Facture Soldée</h5>
+                                <p class="text-muted mb-0">Cette facture a été entièrement réglée. Aucun paiement supplémentaire requis.</p>
+                            </div>
+                        @endif
                     @else
                         <div class="d-flex flex-column align-items-center justify-content-center h-100 py-4 text-center">
-                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
-                                <i class="bi bi-check2-all" style="font-size: 2.5rem;"></i>
+                            <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="bi bi-eye" style="font-size: 2.5rem;"></i>
                             </div>
-                            <h5 class="fw-bold text-dark">Facture Soldée</h5>
-                            <p class="text-muted mb-0">Cette facture a été entièrement réglée. Aucun paiement supplémentaire requis.</p>
+                            <h5 class="fw-bold text-dark">Mode Consultation</h5>
+                            <p class="text-muted mb-0">L'enregistrement de paiement n'est pas autorisé pour ce profil (lecteur seul).</p>
                         </div>
-                    @endif
+                    @endcanedit
                 </div>
             </div>
         </div>

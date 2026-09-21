@@ -29,7 +29,7 @@
                             <div class="form-check custom-radio">
                                 <input class="form-check-input" type="radio" name="type_cotisation" id="type_salarie" value="salarie" {{ old('type_cotisation') == 'salarie' ? 'checked' : '' }}>
                                 <label class="form-check-label fw-semibold" for="type_salarie">
-                                    Part Salarié (Individuelle)
+                                    Part Participant (Individuelle)
                                 </label>
                             </div>
                         </div>
@@ -42,7 +42,7 @@
                         <select name="id_entreprise" id="id_entreprise" class="form-select bg-light border-0">
                             <option value="">Sélectionnez une entreprise</option>
                             @foreach($entreprises as $entreprise)
-                                <option value="{{ $entreprise->id_entreprise }}" {{ old('id_entreprise') == $entreprise->id_entreprise ? 'selected' : '' }}>
+                                <option value="{{ $entreprise->id }}" {{ old('id_entreprise') == $entreprise->id ? 'selected' : '' }}>
                                     {{ $entreprise->raison_sociale }}
                                 </option>
                             @endforeach
@@ -59,17 +59,45 @@
                         @error('masse_salariale')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                     </div>
 
-                    <!-- Section Salarié -->
+                    <!-- Section Participant -->
                     <div class="col-md-6 section-salarie" style="display: none;">
-                        <label class="form-label fw-medium">Salarié *</label>
-                        <select name="id_salarie" id="id_salarie" class="form-select bg-light border-0">
-                            <option value="">Sélectionnez un salarié</option>
-                            @foreach($salaries as $salarie)
-                                <option value="{{ $salarie->id_salarie }}" {{ old('id_salarie') == $salarie->id_salarie ? 'selected' : '' }}>
-                                    {{ $salarie->prenom }} {{ $salarie->nom }} ({{ $salarie->entreprise->raison_sociale ?? 'Sans entreprise' }})
-                                </option>
-                            @endforeach
-                        </select>
+                        <label class="form-label fw-medium">
+                            <i class="bi bi-upc-scan text-primary me-1"></i>Matricule du Participant *
+                        </label>
+                        <div class="position-relative">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-0 text-muted">
+                                    <i class="bi bi-search text-primary"></i>
+                                </span>
+                                <input type="text" 
+                                       id="cotisation_matricule_input" 
+                                       class="form-control bg-white border-0" 
+                                       placeholder="Saisir matricule, nom ou prénom..." 
+                                       autocomplete="off"
+                                       oninput="handleCotisationMatriculeSearch(this.value)"
+                                       onfocus="if(this.value.trim().length >= 1) handleCotisationMatriculeSearch(this.value)">
+                                <button class="btn btn-white border-0" type="button" id="cotisation_btn_clear" onclick="clearCotisationParticipant()" style="display: none;" title="Effacer">
+                                    <i class="bi bi-x-circle text-muted"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="id_salarie" id="id_salarie" value="{{ old('id_salarie') }}">
+
+                            <div id="cotisation_autocomplete_dropdown" class="dropdown-menu shadow-lg border-0 rounded-3 w-100 p-2 mt-1 position-absolute" style="max-height: 250px; overflow-y: auto; z-index: 1060; display: none;">
+                            </div>
+                        </div>
+
+                        <!-- Badge récapitulatif -->
+                        <div id="cotisation_participant_badge" class="p-2 px-3 bg-white rounded-3 d-flex align-items-center justify-content-between mt-2 shadow-xs" style="display: none;">
+                            <div>
+                                <span class="badge bg-primary font-monospace me-1" id="cotisation_badge_mat">MAT</span>
+                                <strong class="text-dark small" id="cotisation_badge_nom">Nom Prénom</strong>
+                                <small class="text-muted ms-1" id="cotisation_badge_ent">(Entreprise)</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-link text-primary p-0 text-decoration-none" onclick="document.getElementById('cotisation_matricule_input').focus()">
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        </div>
+
                         @error('id_salarie')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                     </div>
 
@@ -163,6 +191,96 @@
 
         // Run once on load to set initial state
         updateForm();
+
+        // Initialisation si un participant était déjà sélectionné
+        const initialSalarieId = document.getElementById('id_salarie').value;
+        if (initialSalarieId) {
+            fetch(`{{ route('salaries.search-matricule') }}?id=${encodeURIComponent(initialSalarieId)}`)
+                .then(res => res.json())
+                .then(item => {
+                    if (item && item.id) {
+                        selectCotisationParticipant(item);
+                    }
+                })
+                .catch(console.error);
+        }
+    });
+
+    let cotisDebounce = null;
+
+    function handleCotisationMatriculeSearch(query) {
+        const dropdown = document.getElementById('cotisation_autocomplete_dropdown');
+        const term = query.trim();
+
+        if (term.length < 1) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        clearTimeout(cotisDebounce);
+        cotisDebounce = setTimeout(() => {
+            dropdown.innerHTML = '<div class="p-2 text-center text-muted small"><span class="spinner-border spinner-border-sm me-2 text-primary"></span>Recherche...</div>';
+            dropdown.style.display = 'block';
+
+            fetch(`{{ route('salaries.search-matricule') }}?q=${encodeURIComponent(term)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!Array.isArray(data) || data.length === 0) {
+                        dropdown.innerHTML = '<div class="p-2 text-center text-muted small">Aucun participant trouvé</div>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach(item => {
+                        const itemJson = JSON.stringify(item).replace(/'/g, "&#39;");
+                        html += `
+                            <a href="javascript:void(0)" class="dropdown-item p-2 rounded-2 mb-1 text-wrap d-flex justify-content-between align-items-center" onclick='selectCotisationParticipant(${itemJson})'>
+                                <div>
+                                    <div>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 font-monospace me-1">${item.matricule}</span>
+                                        <strong class="text-dark">${item.nom} ${item.prenom}</strong>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">${item.entreprise}</small>
+                                </div>
+                                <span class="badge ${item.statut === 'actif' ? 'bg-success' : 'bg-secondary'} bg-opacity-10 ${item.statut === 'actif' ? 'text-success' : 'text-secondary'} rounded-pill small">${item.statut}</span>
+                            </a>
+                        `;
+                    });
+                    dropdown.innerHTML = html;
+                })
+                .catch(err => {
+                    dropdown.innerHTML = '<div class="p-2 text-center text-danger small">Erreur lors de la recherche</div>';
+                });
+        }, 200);
+    }
+
+    function selectCotisationParticipant(item) {
+        document.getElementById('id_salarie').value = item.id;
+        document.getElementById('cotisation_matricule_input').value = item.matricule;
+        document.getElementById('cotisation_autocomplete_dropdown').style.display = 'none';
+
+        document.getElementById('cotisation_badge_mat').textContent = item.matricule;
+        document.getElementById('cotisation_badge_nom').textContent = `${item.nom} ${item.prenom}`;
+        document.getElementById('cotisation_badge_ent').textContent = `(${item.entreprise})`;
+        document.getElementById('cotisation_participant_badge').style.display = 'flex';
+        document.getElementById('cotisation_btn_clear').style.display = 'block';
+    }
+
+    function clearCotisationParticipant() {
+        document.getElementById('id_salarie').value = '';
+        document.getElementById('cotisation_matricule_input').value = '';
+        document.getElementById('cotisation_participant_badge').style.display = 'none';
+        document.getElementById('cotisation_btn_clear').style.display = 'none';
+        document.getElementById('cotisation_autocomplete_dropdown').style.display = 'none';
+        document.getElementById('cotisation_matricule_input').focus();
+    }
+
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('cotisation_autocomplete_dropdown');
+        const input = document.getElementById('cotisation_matricule_input');
+        if (dropdown && !dropdown.contains(e.target) && e.target !== input) {
+            dropdown.style.display = 'none';
+        }
     });
 </script>
 @endsection

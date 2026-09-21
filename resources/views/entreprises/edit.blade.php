@@ -12,7 +12,7 @@
 
         <div class="card shadow-sm">
             <div class="card-body p-5">
-                <form action="{{ route('entreprises.update', $entreprise->id_entreprise) }}" method="POST">
+                <form action="{{ route('entreprises.update', $entreprise->id) }}" method="POST">
                     @csrf
                     @method('PUT')
 
@@ -55,11 +55,6 @@
                     </div>
 
                     <div class="row mb-4">
-                        <div class="col-md-6">
-                            <label for="date_adhesion" class="form-label fw-medium text-muted">Date d'adhésion</label>
-                            <input type="date" class="form-control @error('date_adhesion') is-invalid @enderror" id="date_adhesion" name="date_adhesion" value="{{ old('date_adhesion', $entreprise->date_adhesion) }}">
-                            @error('date_adhesion') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
                         <div class="col-md-6">
                             <label for="statut" class="form-label fw-medium text-muted">Statut</label>
                             <select class="form-select @error('statut') is-invalid @enderror" id="statut" name="statut">

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PieceJointe extends Model
 {
     use \App\Traits\Auditable;
-
     protected $table = 'piece_jointe';
     protected $primaryKey = 'id_piece';
     protected $guarded = [];

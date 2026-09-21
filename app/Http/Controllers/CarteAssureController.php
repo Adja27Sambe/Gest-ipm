@@ -75,7 +75,7 @@ class CarteAssureController extends Controller
      */
     public function show(CarteAssure $carte)
     {
-        $carte->load(['salarie.entreprise', 'salarie.photo']);
+        $carte->load(['salarie.entreprise']);
         return view('salaries.carte', compact('carte'));
     }
 }

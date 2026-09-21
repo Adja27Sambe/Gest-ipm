@@ -17,10 +17,10 @@ return new class extends Migration
             $table->foreign('id_salarie')->references('id_salarie')->on('salarie')->onDelete('cascade');
             
             $table->decimal('salaire_base', 12, 2)->nullable()->after('masse_salariale');
+            
+            // Rendre id_entreprise nullable de façon agnostique
+            $table->unsignedBigInteger('id_entreprise')->nullable()->change();
         });
-
-        // Rendre id_entreprise nullable
-        DB::statement('ALTER TABLE cotisation MODIFY id_entreprise BIGINT UNSIGNED NULL;');
     }
 
     /**
@@ -32,8 +32,9 @@ return new class extends Migration
             $table->dropForeign(['id_salarie']);
             $table->dropColumn('id_salarie');
             $table->dropColumn('salaire_base');
+            
+            // Rendre id_entreprise non nullable de façon agnostique
+            $table->unsignedBigInteger('id_entreprise')->nullable(false)->change();
         });
-
-        DB::statement('ALTER TABLE cotisation MODIFY id_entreprise BIGINT UNSIGNED NOT NULL;');
     }
 };

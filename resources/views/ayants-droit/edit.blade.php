@@ -21,8 +21,8 @@
                     <div class="col-md-12">
                         <label class="form-label fw-medium">Photo de profil</label>
                         <div class="d-flex align-items-center mb-2">
-                            @if($ayantDroit->photo)
-                                <img src="{{ $ayantDroit->photo->url }}" alt="Photo" class="rounded-circle object-fit-cover me-3 border" style="width: 60px; height: 60px;">
+                            @if($ayantDroit->photo_url)
+                                <img src="{{ $ayantDroit->photo_url }}" alt="Photo" class="rounded-circle object-fit-cover me-3 border" style="width: 60px; height: 60px;">
                             @else
                                 <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3 border text-secondary" style="width: 60px; height: 60px;">
                                     <i class="bi bi-person fs-3"></i>

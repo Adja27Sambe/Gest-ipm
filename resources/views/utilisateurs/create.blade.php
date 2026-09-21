@@ -63,17 +63,30 @@
                                 @error('mot_de_passe') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="id_role" class="form-label fw-semibold text-dark">Rôle & Permissions <span class="text-danger">*</span></label>
-                                <select class="form-select @error('id_role') is-invalid @enderror" id="id_role" name="id_role" required>
-                                    <option value="" disabled {{ old('id_role') ? '' : 'selected' }}>Sélectionner un rôle</option>
+                                <label for="id_role" class="form-label fw-semibold text-dark">Rôle & Profil Métier <span class="text-danger">*</span></label>
+                                <select class="form-select @error('id_role') is-invalid @enderror" id="id_role" name="id_role" required onchange="updateRolePreview()">
+                                    <option value="" disabled {{ old('id_role') ? '' : 'selected' }}>Sélectionner un profil métier</option>
                                     @foreach($roles as $role)
                                         <option value="{{ $role->id_role }}" {{ old('id_role') == $role->id_role ? 'selected' : '' }}>
-                                            {{ $role->libelle }}
+                                            {{ $role->libelle }} ({{ $role->categorie ?? 'Général' }})
                                         </option>
                                     @endforeach
                                 </select>
                                 @error('id_role') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
+                        </div>
+
+                        <!-- Aperçu dynamique des permissions du profil sélectionné -->
+                        <div id="role_preview_box" class="card border rounded-4 p-3 mb-4 bg-light d-none">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill" id="preview_role_category">Fonctionnalité</span>
+                                    <strong class="text-dark" id="preview_role_title">Profil sélectionné</strong>
+                                </div>
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle rounded-pill" id="preview_perms_count">0 permission(s)</span>
+                            </div>
+                            <p class="text-muted small mb-2" id="preview_role_desc"></p>
+                            <div class="d-flex flex-wrap gap-1" id="preview_role_badges"></div>
                         </div>
 
                         <div class="mb-4">
@@ -109,4 +122,49 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    const availableRoles = @json($roles);
+
+    function updateRolePreview() {
+        const select = document.getElementById('id_role');
+        const previewBox = document.getElementById('role_preview_box');
+        const selectedId = parseInt(select.value);
+
+        const role = availableRoles.find(r => r.id_role === selectedId);
+        if (!role) {
+            previewBox.classList.add('d-none');
+            return;
+        }
+
+        previewBox.classList.remove('d-none');
+        document.getElementById('preview_role_category').textContent = role.categorie || 'Fonctionnalité';
+        document.getElementById('preview_role_title').textContent = role.libelle;
+        document.getElementById('preview_role_desc').textContent = role.description || 'Aucune description disponible pour ce profil.';
+        
+        const count = role.permissions ? role.permissions.length : 0;
+        document.getElementById('preview_perms_count').textContent = count + ' droit(s) d\'accès';
+
+        const badgesContainer = document.getElementById('preview_role_badges');
+        badgesContainer.innerHTML = '';
+        if (role.permissions && role.permissions.length > 0) {
+            role.permissions.forEach(p => {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-white text-dark border rounded-pill px-2 py-1 small fw-normal';
+                badge.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>' + p.libelle;
+                badgesContainer.appendChild(badge);
+            });
+        } else {
+            badgesContainer.innerHTML = '<span class="text-muted small fst-italic">Aucune permission spécifique.</span>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('id_role').value) {
+            updateRolePreview();
+        }
+    });
+</script>
+@endpush
 @endsection

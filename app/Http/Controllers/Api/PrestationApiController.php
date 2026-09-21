@@ -23,9 +23,18 @@ class PrestationApiController extends Controller
             'montant' => 'required|numeric|min:0',
             'taux_prise_charge' => 'required|numeric|min:0|max:100',
             'id_type_prestation' => 'required|exists:type_prestation,id_type_prestation',
-            'id_prestataire' => 'required|exists:prestataire,id_prestataire',
+            'id_praticien' => 'nullable|exists:praticien,PRCLEUNIK',
+            'id_pharmacie' => 'nullable|exists:pharmacie,PHCLEUNIK',
             'id_demande' => 'required|exists:demande,id_demande',
         ]);
+
+        $demande = Demande::find($validated['id_demande']);
+        if (!$demande || !$demande->est_valide) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La prise en charge sélectionnée n\'est pas valide ou n\'a pas encore été approuvée.'
+            ], 422);
+        }
 
         try {
             // 1. Vérification des plafonds AVANT enregistrement (laisse passer ou jette une PlafondDepasseException)
@@ -61,7 +70,7 @@ class PrestationApiController extends Controller
     public function history(Request $request)
     {
         $request->validate([
-            'id_salarie' => 'nullable|exists:salarie,id_salarie',
+            'id_salarie' => 'nullable|exists:salarie,IDPARTICIPANT',
             'id_ayant_droit' => 'nullable|exists:ayant_droit,id_ayant_droit',
         ]);
 
@@ -71,7 +80,7 @@ class PrestationApiController extends Controller
 
         $annee = $request->input('annee', date('Y'));
 
-        $query = Prestation::with(['typePrestation', 'prestataire'])
+        $query = Prestation::with(['typePrestation', 'praticien', 'pharmacie'])
             ->whereYear('date_prestation', $annee)
             ->whereHas('demande', function ($q) use ($request) {
                 if ($request->id_ayant_droit) {

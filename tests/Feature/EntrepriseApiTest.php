@@ -41,7 +41,7 @@ class EntrepriseApiTest extends TestCase
         $response->assertStatus(201)
                  ->assertJsonPath('data.raison_sociale', 'New Company');
                  
-        $this->assertDatabaseHas('entreprise', ['code_adherent' => 'ADH002']);
+        $this->assertDatabaseHas('ADHERANT', ['CODEADHERANT' => 'ADH002']);
     }
 
     public function test_can_update_entreprise_status_and_logs_history()
@@ -76,7 +76,7 @@ class EntrepriseApiTest extends TestCase
         $response = $this->deleteJson("/api/entreprises/{$entreprise->id_entreprise}");
 
         $response->assertStatus(204);
-        $this->assertDatabaseMissing('entreprise', ['id_entreprise' => $entreprise->id_entreprise]);
+        $this->assertDatabaseMissing('ADHERANT', ['IDADHERANT' => $entreprise->id_entreprise]);
     }
 
     public function test_cannot_delete_entreprise_with_salaries()
@@ -95,6 +95,6 @@ class EntrepriseApiTest extends TestCase
         $response->assertStatus(409)
                  ->assertJsonFragment(['message' => 'Impossible de supprimer cette entreprise car elle possède des salariés.']);
                  
-        $this->assertDatabaseHas('entreprise', ['id_entreprise' => $entreprise->id_entreprise]);
+        $this->assertDatabaseHas('ADHERANT', ['IDADHERANT' => $entreprise->id_entreprise]);
     }
 }

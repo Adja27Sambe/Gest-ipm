@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Prestation extends Model
 {
     use \App\Traits\Auditable;
-
     protected $table = 'prestation';
     protected $primaryKey = 'id_prestation';
     
@@ -20,6 +19,7 @@ class Prestation extends Model
         'montant' => 'decimal:2',
         'taux_prise_charge' => 'decimal:2',
         'reste_a_charge' => 'decimal:2',
+        'details_articles' => 'array',
     ];
 
     public function typePrestation()

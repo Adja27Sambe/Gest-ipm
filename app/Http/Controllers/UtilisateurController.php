@@ -48,7 +48,7 @@ class UtilisateurController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        $roles = Role::with('permissions')->orderBy('libelle')->get();
         return view('utilisateurs.create', compact('roles'));
     }
 
@@ -71,7 +71,7 @@ class UtilisateurController extends Controller
      */
     public function edit(Utilisateur $utilisateur)
     {
-        $roles = Role::all();
+        $roles = Role::with('permissions')->orderBy('libelle')->get();
         return view('utilisateurs.edit', compact('utilisateur', 'roles'));
     }
 

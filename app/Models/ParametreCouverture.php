@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class ParametreCouverture extends Model
 {
     use \App\Traits\Auditable;
-
     protected $table = 'parametre_couverture';
     protected $primaryKey = 'id_parametre';
     protected $guarded = [];

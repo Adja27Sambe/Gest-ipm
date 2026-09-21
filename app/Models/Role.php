@@ -27,4 +27,38 @@ class Role extends Model
         return $this->belongsToMany(Permission::class, 'role_permission', 'id_role', 'id_permission');
     }
 
+    /**
+     * Vérifie si le rôle dispose d'une permission spécifique (par code ou libellé).
+     */
+    public function hasPermission(string $permissionCode): bool
+    {
+        if ($this->libelle === 'Administrateur') {
+            return true;
+        }
+
+        return $this->permissions->contains(function ($perm) use ($permissionCode) {
+            return $perm->code === $permissionCode || $perm->libelle === $permissionCode;
+        });
+    }
+
+    /**
+     * Vérifie si le rôle est en lecture seule (ex: Superviseur, Lecteur, Consultation).
+     */
+    public function isReadOnly(): bool
+    {
+        $libelle = strtolower($this->libelle ?? '');
+        $code = strtolower($this->code ?? '');
+
+        return str_contains($libelle, 'supervis') || str_contains($code, 'supervis')
+            || str_contains($libelle, 'lecteur') || str_contains($code, 'lecteur')
+            || str_contains($libelle, 'consultation') || str_contains($code, 'consultation');
+    }
+
+    /**
+     * Vérifie si le rôle dispose des droits d'édition.
+     */
+    public function canEdit(): bool
+    {
+        return !$this->isReadOnly();
+    }
 }

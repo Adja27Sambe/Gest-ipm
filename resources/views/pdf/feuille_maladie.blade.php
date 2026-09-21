@@ -67,14 +67,14 @@
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
         <tr>
             <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 28%; background-color: #f8f9fa; vertical-align: middle;">
-                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Matricule Salarié</span>
+                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Matricule Participant</span>
                 <span style="font-size: 18px; font-weight: bold; color: #28a745; letter-spacing: 1px;">{{ $demande->salarie->matricule ?? 'N/A' }}</span>
             </td>
             <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 38%; vertical-align: middle;">
                 <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Participant concerné</span>
                 @if($demande->ayantDroit)
                     <strong style="font-size: 14px;">{{ $demande->ayantDroit->prenom }} {{ $demande->ayantDroit->nom }}</strong><br>
-                    <span style="font-size: 11px; color: #666;">(Ayant-droit de {{ $demande->salarie->prenom }} {{ $demande->salarie->nom }})</span>
+                    <span style="font-size: 11px; color: #666;">(Ayant-droit ({{ $demande->ayantDroit->lien_parente ?? 'N/A' }}) de {{ $demande->salarie->prenom }} {{ $demande->salarie->nom }})</span>
                 @else
                     <strong style="font-size: 14px;">{{ $demande->salarie->prenom }} {{ $demande->salarie->nom }}</strong>
                     <span style="font-size: 11px; color: #666;">&nbsp;&nbsp;Lui-même</span>

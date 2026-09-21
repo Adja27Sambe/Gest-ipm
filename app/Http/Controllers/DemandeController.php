@@ -4,29 +4,35 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDemandeRequest;
 use App\Http\Requests\UpdateDemandeRequest;
-use App\Services\Demandes\DemandeService;
+use App\Services\DemandeService;
 use App\Models\Demande;
 use App\Models\TypeDemande;
 use App\Models\Salarie;
 use App\Models\TypePrestation;
+use App\Models\Praticien;
+use App\Models\Pharmacie;
 
 class DemandeController extends Controller
 {
     public function index()
     {
         $perPage = request('per_page', 5);
-        $demandes = Demande::with(['typeDemande', 'salarie:id_salarie,nom,prenom', 'ayantDroit:id_ayant_droit,nom,prenom', 'bonCommande', 'feuilleMaladie', 'lettreGarantie'])
+        $demandes = Demande::with(['typeDemande', 'salarie', 'ayantDroit', 'bonCommande', 'feuilleMaladie', 'lettreGarantie'])
             ->orderByDesc('date_demande')
             ->orderByDesc('id_demande')
             ->paginate($perPage)
             ->withQueryString();
         $typesDemande = TypeDemande::select('id_type_demande', 'libelle')->get();
-        $salaries = Salarie::with(['ayantsDroit' => function($q) {
-            $q->select('id_ayant_droit', 'id_salarie', 'nom', 'prenom');
-        }])->select('id_salarie', 'nom', 'prenom', 'matricule')->get();
+        $salaries = Salarie::where('PARACTIF', 1)
+            ->with(['ayantsDroit' => function($q) {
+                $q->select('id_ayant_droit', 'id_salarie', 'nom', 'prenom', 'lien_parente', 'date_naissance');
+            }])
+            ->select('IDPARTICIPANT', 'NOM', 'PRENOM', 'MATRICULE', 'Date_Naissance')
+            ->orderBy('NOM')
+            ->get();
         $typesPrestation = TypePrestation::select('id_type_prestation', 'libelle')->get();
-        $praticiens = \App\Models\Praticien::all();
-        $pharmacies = \App\Models\Pharmacie::all();
+        $praticiens = Praticien::orderBy('NOMPRAT')->get();
+        $pharmacies = Pharmacie::orderBy('NOMPHARM')->get();
         
         // KPIs pour le Dashboard
         $stats = [
@@ -41,16 +47,27 @@ class DemandeController extends Controller
 
     public function create()
     {
-        return view('demandes.create');
+        $typesDemande = TypeDemande::all();
+        $salaries = Salarie::where('PARACTIF', 1)
+            ->select('IDPARTICIPANT', 'NOM', 'PRENOM', 'MATRICULE', 'Date_Naissance')
+            ->with(['ayantsDroit' => function($q) {
+                $q->where('statut', 'actif');
+            }])
+            ->orderBy('NOM')
+            ->get();
+        $praticiens = Praticien::orderBy('NOMPRAT')->get();
+        $pharmacies = Pharmacie::orderBy('NOMPHARM')->get();
+
+        return view('demandes.create', compact('typesDemande', 'salaries', 'praticiens', 'pharmacies'));
     }
 
     public function store(StoreDemandeRequest $request, DemandeService $service)
     {
         try {
-            $service->createDemande($request->validated());
-            return redirect()->route('demandes.index')->with('success', 'Demande générée avec succès. Ce bon/feuille est valable jusqu\'à la fin de ce mois.');
+            $service->traiterDemande($request->validated());
+            return redirect()->route('demandes.index')->with('success', 'Prise en charge médicale générée avec succès.');
         } catch (\Exception $e) {
-            return redirect()->route('demandes.index')->with('error', 'Erreur : ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Erreur : ' . $e->getMessage());
         }
     }
 
@@ -67,13 +84,13 @@ class DemandeController extends Controller
     public function update(UpdateDemandeRequest $request, Demande $demande)
     {
         $demande->update($request->validated());
-        return redirect()->route('demandes.index')->with('success', 'Demande mise à jour.');
+        return redirect()->route('demandes.index')->with('success', 'Prise en charge médical mise à jour.');
     }
 
     public function destroy(Demande $demande)
     {
         $demande->delete();
-        return redirect()->route('demandes.index')->with('success', 'Demande supprimée.');
+        return redirect()->route('demandes.index')->with('success', 'Prise en charge médical supprimée.');
     }
 
     /**
@@ -88,8 +105,8 @@ class DemandeController extends Controller
         }
 
         $salarie = Salarie::with(['ayantsDroit' => function ($query) {
-            $query->where('statut', 'Actif')->select('id_ayant_droit', 'id_salarie', 'nom', 'prenom', 'date_naissance', 'statut');
-        }])->where('matricule', $matricule)->first();
+            $query->where('statut', 'Actif');
+        }])->where('MATRICULE', $matricule)->first();
 
         if (!$salarie) {
             return response()->json(['error' => 'Participant non trouvé.'], 404);

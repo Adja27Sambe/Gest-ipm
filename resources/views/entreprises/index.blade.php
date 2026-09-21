@@ -3,9 +3,11 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="h3 fw-bold text-dark mb-0">Gestion des Adhérents</h2>
+    @canedit
     <a href="{{ route('entreprises.create') }}" class="btn btn-primary shadow-sm">
         + Nouvelle entreprise
     </a>
+    @endcanedit
 </div>
 
 <div class="card mb-4 shadow-sm border-0">
@@ -59,7 +61,7 @@
                 </thead>
                 <tbody>
                     @forelse($entreprises as $entreprise)
-                    <tr class="clickable-row" data-href="{{ route('entreprises.show', $entreprise->id_entreprise) }}">
+                    <tr class="clickable-row" data-href="{{ route('entreprises.show', $entreprise->id) }}">
                         <td class="ps-4 text-muted fw-bold">{{ $entreprise->code_adherent ?? 'N/A' }}</td>
                         <td class="fw-medium">{{ $entreprise->raison_sociale }}</td>
                         <td class="text-muted">{{ $entreprise->email ?? '-' }}</td>
@@ -79,19 +81,21 @@
                         </td>
                         <td class="text-end pe-4">
                             <div class="btn-group btn-group-sm" role="group" aria-label="Actions entreprise">
-                                <a href="{{ route('entreprises.show', $entreprise->id_entreprise) }}" class="btn btn-outline-primary" title="Voir les détails">
+                                <a href="{{ route('entreprises.show', $entreprise->id) }}" class="btn btn-outline-primary" title="Voir les détails">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ route('entreprises.edit', $entreprise->id_entreprise) }}" class="btn btn-outline-warning border-start-0" title="Éditer">
+                                @canedit
+                                <a href="{{ route('entreprises.edit', $entreprise->id) }}" class="btn btn-outline-warning border-start-0" title="Éditer">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('entreprises.destroy', $entreprise->id_entreprise) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?');">
+                                <form action="{{ route('entreprises.destroy', $entreprise->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-outline-danger border-start-0" title="Supprimer">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
+                                @endcanedit
                             </div>
                         </td>
                     </tr>

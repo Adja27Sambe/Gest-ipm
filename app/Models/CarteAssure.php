@@ -25,7 +25,7 @@ class CarteAssure extends Model
 
     public function salarie(): BelongsTo
     {
-        return $this->belongsTo(Salarie::class, 'id_salarie');
+        return $this->belongsTo(Salarie::class, 'id_salarie', 'IDPARTICIPANT');
     }
 
 }

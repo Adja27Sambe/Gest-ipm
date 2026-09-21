@@ -13,7 +13,7 @@ class PraticienWebController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 5);
-        $praticiens = Praticien::latest('id_praticien')->paginate($perPage)->withQueryString();
+        $praticiens = Praticien::with('conventions')->latest('PRCLEUNIK')->paginate($perPage)->withQueryString();
         return view('praticiens.index', compact('praticiens'));
     }
 

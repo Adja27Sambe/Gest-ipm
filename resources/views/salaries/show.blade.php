@@ -5,15 +5,17 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <a href="{{ route('salaries.index') }}" class="btn btn-link text-decoration-none text-secondary p-0 mb-2">
-                <i class="bi bi-arrow-left"></i> Retour aux salariés
+                <i class="bi bi-arrow-left"></i> Retour aux participants
             </a>
             <h1 class="h3 mb-0 text-gray-800">Dossier Famille : {{ $salarie->prenom }} {{ $salarie->nom }}</h1>
         </div>
+        @canedit
         <div>
             <a href="{{ route('salaries.edit', $salarie) }}" class="btn btn-light text-primary border shadow-sm rounded-3">
                 <i class="bi bi-pencil me-2"></i>Modifier
             </a>
         </div>
+        @endcanedit
     </div>
 
     <!-- Alertes -->
@@ -37,15 +39,15 @@
     @endif
 
     <div class="row g-4">
-        <!-- Informations du Salarié -->
+        <!-- Informations du Participant -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-body p-4">
-                    <h5 class="text-primary mb-4"><i class="bi bi-person-badge me-2"></i>Informations Salarié</h5>
+                    <h5 class="text-primary mb-4"><i class="bi bi-person-badge me-2"></i>Informations Participant</h5>
                     
                     <div class="text-center mb-4">
-                        @if($salarie->photo)
-                            <img src="{{ $salarie->photo->url }}" alt="Photo de profil" class="rounded-circle object-fit-cover shadow-sm border border-3 border-white" style="width: 120px; height: 120px;">
+                        @if($salarie->photo_url)
+                            <img src="{{ $salarie->photo_url }}" alt="Photo de profil" class="rounded-circle object-fit-cover shadow-sm border border-3 border-white" style="width: 120px; height: 120px;">
                         @else
                             <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center shadow-sm border border-3 border-white text-secondary" style="width: 120px; height: 120px;">
                                 <i class="bi bi-person" style="font-size: 4rem;"></i>
@@ -118,7 +120,7 @@
                     @else
                         <div class="text-center py-5 bg-light rounded-4">
                             <i class="bi bi-credit-card fs-1 d-block mb-3 text-secondary opacity-50"></i>
-                            <h6 class="fw-bold text-dark mb-2">Aucune carte d'assuré n'a été générée pour ce salarié.</h6>
+                            <h6 class="fw-bold text-dark mb-2">Aucune carte d'assuré n'a été générée pour ce participant.</h6>
                             <p class="text-muted mb-4 small">Générez une carte pour obtenir le matricule unique et les cartes téléchargeables au format PNG et PDF.</p>
                             <form action="{{ route('cartes-assurees.generate', $salarie) }}" method="POST">
                                 @csrf
@@ -136,11 +138,13 @@
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="text-primary mb-0"><i class="bi bi-people-fill me-2"></i>Ayants Droit</h5>
+                        @canedit
                         @if($salarie->statut != 'radie')
                         <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#addAyantDroitModal">
                             <i class="bi bi-plus-lg me-1"></i>Ajouter
                         </button>
                         @endif
+                        @endcanedit
                     </div>
 
                     <div class="table-responsive">
@@ -160,8 +164,8 @@
                                     <tr>
                                         <td class="ps-3 fw-medium">
                                             <div class="d-flex align-items-center">
-                                                @if($ayant->photo)
-                                                    <img src="{{ $ayant->photo->url }}" alt="Photo" class="rounded-circle object-fit-cover me-2 border" style="width: 32px; height: 32px;">
+                                                @if($ayant->photo_url)
+                                                    <img src="{{ $ayant->photo_url }}" alt="Photo" class="rounded-circle object-fit-cover me-2 border" style="width: 32px; height: 32px;">
                                                 @else
                                                     <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2 border text-secondary" style="width: 32px; height: 32px; font-size: 0.8rem;">
                                                         <i class="bi bi-person"></i>
@@ -185,6 +189,7 @@
                                             @endif
                                         </td>
                                         <td class="text-end pe-3">
+                                            @canedit
                                             <a href="{{ route('ayants-droit.edit', $ayant) }}" class="btn btn-sm btn-light text-secondary rounded-circle me-1" title="Modifier">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
@@ -195,6 +200,9 @@
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
+                                            @else
+                                            <span class="text-muted small">-</span>
+                                            @endcanedit
                                         </td>
                                     </tr>
                                 @empty

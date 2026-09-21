@@ -13,7 +13,7 @@ class PharmacieWebController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 5);
-        $pharmacies = Pharmacie::latest('id_pharmacie')->paginate($perPage)->withQueryString();
+        $pharmacies = Pharmacie::with('conventions')->latest('PHCLEUNIK')->paginate($perPage)->withQueryString();
         return view('pharmacies.index', compact('pharmacies'));
     }
 

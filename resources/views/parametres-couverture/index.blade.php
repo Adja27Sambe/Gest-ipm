@@ -6,9 +6,11 @@
         <h2 class="fw-bold mb-1 text-dark" style="letter-spacing: -0.5px;">Paramètres de Couverture</h2>
         <p class="text-muted mb-0">Gestion des taux et plafonds de prise en charge par type de prestation</p>
     </div>
+    @canedit
     <a href="{{ route('parametres-couverture.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
         <i class="bi bi-plus-lg me-2"></i> Nouveau Paramètre
     </a>
+    @endcanedit
 </div>
 
 <div class="card border-0 shadow-sm mb-4 rounded-4">
@@ -86,6 +88,7 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-end">
+                            @canedit
                             <div class="btn-group btn-group-sm" role="group" aria-label="Actions paramètre">
                                 <a href="{{ route('parametres-couverture.edit', $param->id_parametre) }}" class="btn btn-outline-warning" title="Modifier">
                                     <i class="bi bi-pencil"></i>
@@ -98,6 +101,9 @@
                                     </button>
                                 </form>
                             </div>
+                            @else
+                            <span class="text-muted small">-</span>
+                            @endcanedit
                         </td>
                     </tr>
                 @empty

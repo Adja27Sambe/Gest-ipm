@@ -3,9 +3,11 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="h3 fw-bold text-dark mb-0">Gestion des Pharmacies</h2>
+    @canedit
     <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#createPharmacieModal">
         <i class="bi bi-plus-lg"></i> Nouvelle Pharmacie
     </button>
+    @endcanedit
 </div>
 
 <div class="card border-0 shadow-sm mb-4 rounded-4">
@@ -69,6 +71,7 @@
                             @endif
                         </td>
                         <td class="text-end pe-4">
+                            @canedit
                             <div class="btn-group btn-group-sm" role="group" aria-label="Actions pharmacie">
                                 <!-- Bouton Conventions -->
                                 <button class="btn btn-outline-primary" 
@@ -91,6 +94,9 @@
                                     </button>
                                 </form>
                             </div>
+                            @else
+                            <span class="text-muted small">-</span>
+                            @endcanedit
                         </td>
                     </tr>
                     @empty
@@ -118,6 +124,7 @@
 @endsection
 
 @section('modals')
+@canedit
 <!-- Modal Création Pharmacie -->
 <div class="modal fade" id="createPharmacieModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -272,6 +279,8 @@
         </div>
     </div>
 </div>
+@endcanedit
+@endsection
 
 @push('scripts')
 <script>
@@ -335,4 +344,4 @@
         return date.toLocaleDateString('fr-FR');
     }
 </script>
-@endsection
+@endpush

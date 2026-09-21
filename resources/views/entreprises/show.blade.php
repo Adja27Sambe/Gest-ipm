@@ -6,9 +6,11 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h3 fw-bold text-dark mb-0">Détails de l'entreprise</h2>
             <div>
-                <a href="{{ route('entreprises.edit', $entreprise->id_entreprise) }}" class="btn btn-warning text-dark me-2">
+                @canedit
+                <a href="{{ route('entreprises.edit', $entreprise->id) }}" class="btn btn-warning text-dark me-2">
                     Éditer
                 </a>
+                @endcanedit
                 <a href="{{ route('entreprises.index') }}" class="btn btn-light text-muted">
                     Retour
                 </a>
@@ -48,7 +50,7 @@
                     
                     <div class="col-md-6 mb-4">
                         <p class="text-muted mb-1 text-uppercase small fw-bold">Statistiques</p>
-                        <p class="mb-0"><strong>Salariés rattachés :</strong> <span class="badge bg-primary rounded-pill">{{ $entreprise->salaries_count }}</span></p>
+                        <p class="mb-0"><strong>Participants rattachés :</strong> <span class="badge bg-primary rounded-pill">{{ $entreprise->salaries_count }}</span></p>
                     </div>
 
                     <div class="col-12 mb-4">

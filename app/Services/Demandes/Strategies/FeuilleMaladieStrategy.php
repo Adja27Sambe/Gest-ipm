@@ -22,7 +22,7 @@ class FeuilleMaladieStrategy implements DemandeStrategyInterface
 
     public function process(Demande $demande, array $data)
     {
-        $tauxPriseCharge = 80.00;
+        $tauxPriseCharge = 75.00;
         if (!empty($data['id_type_prestation'])) {
             $parametre = ParametreCouverture::where('id_type_prestation', $data['id_type_prestation'])->first();
             if ($parametre) {

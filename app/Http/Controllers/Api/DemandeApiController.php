@@ -28,7 +28,7 @@ class DemandeApiController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => 'Demande générée avec succès.',
+                'message' => 'Prise en charge médical générée avec succès.',
                 'data' => $result
             ], 201);
             
@@ -52,7 +52,7 @@ class DemandeApiController extends Controller
         } elseif ($request->has('id_entreprise')) {
             // Filtrer via l'entreprise du salarié
             $query->whereHas('salarie', function($q) use ($request) {
-                $q->where('id_entreprise', $request->id_entreprise);
+                $q->where('IDADHERANT', $request->id_entreprise);
             });
         }
 

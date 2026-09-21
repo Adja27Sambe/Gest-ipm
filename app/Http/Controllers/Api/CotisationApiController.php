@@ -15,21 +15,24 @@ class CotisationApiController extends Controller
     public function statut(Request $request)
     {
         $request->validate([
-            'id_salarie' => 'nullable|exists:salarie,id_salarie',
+            'id_salarie' => 'nullable|exists:salarie,PACLEUNIK',
             'periode' => 'nullable|string', // ex: 2023-10
         ]);
 
-        $query = Cotisation::with('salarie');
+        $query = \App\Models\CotisationParticipant::with('salarie');
 
         if ($request->has('id_salarie') && $request->id_salarie != '') {
-            $query->where('id_salarie', $request->id_salarie);
+            $query->where('PACLEUNIK', $request->id_salarie);
         }
 
         if ($request->has('periode') && $request->periode != '') {
-            $query->where('periode', $request->periode);
+            $parts = explode('-', $request->periode);
+            if (count($parts) === 2) {
+                $query->where('ANNEECOTISE', $parts[0])->where('MOISCOTISE', $parts[1]);
+            }
         }
 
-        $cotisations = $query->orderBy('periode', 'desc')->paginate($request->input('per_page', 15));
+        $cotisations = $query->orderBy('ANNEECOTISE', 'desc')->orderBy('MOISCOTISE', 'desc')->paginate($request->input('per_page', 15));
 
         return response()->json([
             'success' => true,
@@ -42,17 +45,16 @@ class CotisationApiController extends Controller
      */
     public function recouvrement(Request $request)
     {
-        $rapports = DB::table('cotisation')
-            ->join('salarie', 'cotisation.id_salarie', '=', 'salarie.id_salarie')
-            ->join('entreprise', 'salarie.id_entreprise', '=', 'entreprise.id_entreprise')
+        $rapports = DB::connection('mysql')->table('COTISE')
+            ->join('ADHERANT', 'COTISE.ADCLEUNIK', '=', 'ADHERANT.IDADHERANT')
             ->select(
-                'entreprise.id_entreprise',
-                'entreprise.raison_sociale as nom_entreprise',
-                DB::raw('SUM(cotisation.montant) as total_du'),
-                DB::raw("SUM(CASE WHEN cotisation.statut = 'payee' THEN cotisation.montant ELSE 0 END) as total_paye"),
-                DB::raw("SUM(CASE WHEN cotisation.statut = 'impayee' THEN cotisation.montant ELSE 0 END) as total_impaye")
+                'ADHERANT.IDADHERANT as id_entreprise',
+                'ADHERANT.ADHERANT as nom_entreprise',
+                DB::raw('SUM(COTISE.MTCOTISE) as total_du'),
+                DB::raw("SUM(COTISE.MTREGLE) as total_paye"),
+                DB::raw("SUM(COTISE.MTCOTISE - COTISE.MTREGLE) as total_impaye")
             )
-            ->groupBy('entreprise.id_entreprise', 'entreprise.raison_sociale')
+            ->groupBy('ADHERANT.IDADHERANT', 'ADHERANT.ADHERANT')
             ->get();
 
         // Calcul des pourcentages de recouvrement

@@ -11,7 +11,6 @@ use Illuminate\Notifications\Notifiable;
 class Utilisateur extends Authenticatable
 {
     use HasApiTokens, Notifiable, \App\Traits\Auditable;
-
     protected $table = 'utilisateur';
     protected $primaryKey = 'id_utilisateur';
     protected $guarded = [];
@@ -33,7 +32,7 @@ class Utilisateur extends Authenticatable
     }
 
     /**
-     * Vérifie si l'utilisateur possède une permission spécifique.
+     * Vérifie si l'utilisateur possède une permission spécifique (par code ou libellé).
      */
     public function hasPermission(string $permissionName): bool
     {
@@ -41,7 +40,12 @@ class Utilisateur extends Authenticatable
             return false;
         }
 
-        return $this->role->permissions->contains('libelle', $permissionName);
+        // L'administrateur global possède tous les accès
+        if ($this->role->libelle === 'Administrateur') {
+            return true;
+        }
+
+        return $this->role->hasPermission($permissionName);
     }
 
     public function role()
@@ -68,5 +72,21 @@ class Utilisateur extends Authenticatable
     public function validationDevis(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(ValidationDevis::class, 'id_utilisateur', 'id_utilisateur');
+    }
+
+    /**
+     * Vérifie si l'utilisateur possède un profil en lecture seule (Lecteur / Non-éditeur).
+     */
+    public function isReadOnly(): bool
+    {
+        return $this->role ? $this->role->isReadOnly() : false;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut modifier / éditer des données.
+     */
+    public function canEdit(): bool
+    {
+        return !$this->isReadOnly();
     }
 }

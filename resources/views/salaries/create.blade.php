@@ -6,7 +6,7 @@
         <a href="{{ route('salaries.index') }}" class="btn btn-link text-decoration-none text-secondary me-3">
             <i class="bi bi-arrow-left"></i> Retour
         </a>
-        <h1 class="h3 mb-0 text-gray-800">Nouveau Salarié</h1>
+        <h1 class="h3 mb-0 text-gray-800">Nouveau Participant</h1>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4">
@@ -22,7 +22,7 @@
                         <select name="id_entreprise" class="form-select bg-light border-0 @error('id_entreprise') is-invalid @enderror" required>
                             <option value="">Sélectionnez une entreprise</option>
                             @foreach($entreprises as $entreprise)
-                                <option value="{{ $entreprise->id_entreprise }}" {{ old('id_entreprise') == $entreprise->id_entreprise ? 'selected' : '' }}>
+                                <option value="{{ $entreprise->id }}" {{ old('id_entreprise') == $entreprise->id ? 'selected' : '' }}>
                                     {{ $entreprise->raison_sociale }}
                                 </option>
                             @endforeach

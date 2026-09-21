@@ -58,7 +58,7 @@ class CarteAssureService
             $qrCode = $this->genererQrCode($numero, $salarie);
 
             return CarteAssure::create([
-                'id_salarie' => $salarie->id_salarie,
+                'id_salarie' => $salarie->getKey() ?? $salarie->id_salarie,
                 'numero_carte' => $numero,
                 'matricule' => $salarie->matricule,
                 'date_emission' => now(),

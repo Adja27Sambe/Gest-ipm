@@ -8,10 +8,13 @@ class Demande extends Model
 {
     use \App\Traits\Auditable;
     use \App\Traits\HasPiecesJointes;
-
     protected $table = 'demande';
     protected $primaryKey = 'id_demande';
     protected $guarded = [];
+
+    protected $casts = [
+        'date_demande' => 'datetime',
+    ];
 
     // Constantes pour les types de demandes (à adapter si vous utilisez id_type_demande ou un slug)
     public const TYPE_BON_COMMANDE = 'bon_commande';
@@ -25,7 +28,7 @@ class Demande extends Model
 
     public function salarie()
     {
-        return $this->belongsTo(Salarie::class, 'id_salarie', 'id_salarie');
+        return $this->belongsTo(Salarie::class, 'id_salarie', 'IDPARTICIPANT');
     }
 
     public function ayantDroit()
@@ -61,6 +64,32 @@ class Demande extends Model
     public function typePrestation()
     {
         return $this->belongsTo(TypePrestation::class, 'id_type_prestation', 'id_type_prestation');
+    }
+
+    public function getIsBonCommandeAttribute(): bool
+    {
+        return $this->bonCommande !== null || ($this->typeDemande && str_contains(strtolower($this->typeDemande->libelle), 'bon'));
+    }
+
+    public function getNombreArticlesAttribute(): int
+    {
+        return (int) ($this->bonCommande?->nombre_articles ?? 1);
+    }
+
+    public const STATUTS_VALIDES = ['Approuvée', 'validée', 'approuvee', 'validee', 'Valide', 'Validée', 'Approuvé', 'approuve'];
+
+    public function scopeValides($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereIn('statut', self::STATUTS_VALIDES)
+              ->orWhereRaw("LOWER(REPLACE(REPLACE(statut, 'é', 'e'), 'è', 'e')) IN ('approuvee', 'validee', 'valide', 'approuve')");
+        });
+    }
+
+    public function getEstValideAttribute(): bool
+    {
+        $normalized = str_replace(['é', 'è'], 'e', mb_strtolower(trim($this->statut ?? '')));
+        return in_array($normalized, ['approuvee', 'validee', 'valide', 'approuve']);
     }
 
     /**

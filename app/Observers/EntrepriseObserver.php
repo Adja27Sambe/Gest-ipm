@@ -22,14 +22,17 @@ class EntrepriseObserver
      */
     public function updated(Entreprise $entreprise): void
     {
-        if ($entreprise->wasChanged('statut')) {
+        if ($entreprise->wasChanged('statut') || $entreprise->wasChanged('ADACTIF')) {
+            $rawOld = $entreprise->getOriginal('ADACTIF');
+            $oldStatut = ($rawOld == 1 || $rawOld === '1') ? 'actif' : (($rawOld == 2 || $rawOld === '2') ? 'suspendu' : 'inactif');
+            
             HistoriqueMouvement::create([
                 'date_heure' => now(),
                 'module' => 'Entreprise',
                 'action' => 'Changement de statut',
-                'description' => "Le statut de l'entreprise {$entreprise->raison_sociale} est passé de {$entreprise->getOriginal('statut')} à {$entreprise->statut}.",
+                'description' => "Le statut de l'entreprise {$entreprise->raison_sociale} est passé de {$oldStatut} à {$entreprise->statut}.",
                 'adresse_ip' => request()->ip(),
-                'ancienne_valeur' => $entreprise->getOriginal('statut'),
+                'ancienne_valeur' => $oldStatut,
                 'nouvelle_valeur' => $entreprise->statut,
                 'id_utilisateur' => null, // Utilisateur authentifié à implémenter plus tard (ex: auth()->id())
             ]);
@@ -41,10 +44,10 @@ class EntrepriseObserver
      */
     public static function generateCodeAdherent(): string
     {
-        $lastEntreprise = Entreprise::whereNotNull('code_adherent')
-            ->where('code_adherent', 'like', 'ADH%')
-            ->orderByRaw('LENGTH(code_adherent) DESC')
-            ->orderBy('code_adherent', 'desc')
+        $lastEntreprise = Entreprise::whereNotNull('CODEADHERANT')
+            ->where('CODEADHERANT', 'like', 'ADH%')
+            ->orderByRaw('LENGTH(CODEADHERANT) DESC')
+            ->orderBy('CODEADHERANT', 'desc')
             ->first();
 
         if ($lastEntreprise && $lastEntreprise->code_adherent) {
@@ -53,9 +56,11 @@ class EntrepriseObserver
                 $nextNumber = intval($numberPart) + 1;
                 $padLength = max(3, strlen($numberPart));
                 $code = 'ADH' . str_pad($nextNumber, $padLength, '0', STR_PAD_LEFT);
-                while (Entreprise::where('code_adherent', $code)->exists()) {
+                $attempts = 0;
+                while (Entreprise::where('CODEADHERANT', $code)->exists() && $attempts < 50) {
                     $nextNumber++;
                     $code = 'ADH' . str_pad($nextNumber, $padLength, '0', STR_PAD_LEFT);
+                    $attempts++;
                 }
                 return $code;
             }
@@ -63,9 +68,11 @@ class EntrepriseObserver
 
         $count = Entreprise::count() + 1;
         $code = 'ADH' . str_pad($count, 3, '0', STR_PAD_LEFT);
-        while (Entreprise::where('code_adherent', $code)->exists()) {
+        $attempts = 0;
+        while (Entreprise::where('CODEADHERANT', $code)->exists() && $attempts < 50) {
             $count++;
             $code = 'ADH' . str_pad($count, 3, '0', STR_PAD_LEFT);
+            $attempts++;
         }
         return $code;
     }

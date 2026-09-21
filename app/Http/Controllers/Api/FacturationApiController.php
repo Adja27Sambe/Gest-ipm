@@ -17,11 +17,11 @@ class FacturationApiController extends Controller
      */
     public function facturesImpayees(Request $request)
     {
-        $query = Facture::with('prestataire')
+        $query = Facture::with('praticien')
             ->whereIn('statut_paiement', ['en_attente', 'partiellement_payee']);
 
         if ($request->has('id_prestataire')) {
-            $query->where('id_prestataire', $request->id_prestataire);
+            $query->where('PRCLEUNIK', $request->id_prestataire);
         }
 
         $factures = $query->orderBy('date_facture', 'asc')->paginate($request->input('per_page', 15));
@@ -58,10 +58,10 @@ class FacturationApiController extends Controller
         $timestamp = date('Ymd_His');
 
         if ($format === 'pdf') {
-            $query = PaiementPrestataire::with(['facture.prestataire']);
+            $query = PaiementPrestataire::with(['facture.praticien']);
             if ($idPrestataire) {
                 $query->whereHas('facture', function ($q) use ($idPrestataire) {
-                    $q->where('id_prestataire', $idPrestataire);
+                    $q->where('PRCLEUNIK', $idPrestataire);
                 });
             }
             if ($dateDebut) $query->where('date_paiement', '>=', $dateDebut);

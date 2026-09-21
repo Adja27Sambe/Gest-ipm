@@ -4,9 +4,11 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Gestion des Participants</h1>
+        @canedit
         <a href="{{ route('salaries.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="bi bi-plus-lg me-2"></i>Nouveau Salarié
+            <i class="bi bi-plus-lg me-2"></i>Nouveau Participant
         </a>
+        @endcanedit
     </div>
 
     <!-- Alertes -->
@@ -60,7 +62,7 @@
         </div>
     </div>
 
-    <!-- Liste des Salariés -->
+    <!-- Liste des Participants -->
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -80,8 +82,8 @@
                             <td class="ps-4 text-muted fw-bold">{{ $salarie->matricule ?? '-' }}</td>
                             <td class="fw-medium">
                                 <div class="d-flex align-items-center">
-                                    @if($salarie->photo)
-                                        <img src="{{ $salarie->photo->url }}" alt="Photo" class="rounded-circle object-fit-cover me-2 border" style="width: 32px; height: 32px;">
+                                    @if($salarie->photo_url)
+                                        <img src="{{ $salarie->photo_url }}" alt="Photo" class="rounded-circle object-fit-cover me-2 border" style="width: 32px; height: 32px;">
                                     @else
                                         <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2 border text-secondary" style="width: 32px; height: 32px; font-size: 0.8rem;">
                                             <i class="bi bi-person"></i>
@@ -109,7 +111,7 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="btn-group btn-group-sm" role="group" aria-label="Actions salarié">
-                                    <a href="{{ route('salaries.show', $salarie) }}" class="btn btn-outline-primary" title="Dossier salarié">
+                                    <a href="{{ route('salaries.show', $salarie) }}" class="btn btn-outline-primary" title="Dossier participant">
                                         <i class="bi bi-person-lines-fill"></i>
                                     </a>
                                     @if($salarie->carteAssure)
@@ -117,6 +119,7 @@
                                             <i class="bi bi-credit-card-2-front"></i>
                                         </a>
                                     @endif
+                                    @canedit
                                     <a href="{{ route('salaries.edit', $salarie) }}" class="btn btn-outline-warning border-start-0" title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </a>
@@ -127,6 +130,7 @@
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
+                                    @endcanedit
                                 </div>
                             </td>
                         </tr>
@@ -134,7 +138,7 @@
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
-                                Aucun salarié trouvé.
+                                Aucun participant trouvé.
                             </td>
                         </tr>
                     @endforelse
@@ -145,7 +149,7 @@
 
     <div class="d-flex justify-content-between align-items-center mt-4">
         <div class="text-muted small">
-            Affichage de {{ $salaries->firstItem() ?? 0 }} à {{ $salaries->lastItem() ?? 0 }} sur {{ $salaries->total() }} salariés
+            Affichage de {{ $salaries->firstItem() ?? 0 }} à {{ $salaries->lastItem() ?? 0 }} sur {{ $salaries->total() }} participants
         </div>
         <div>
             {{ $salaries->links('pagination::bootstrap-5') }}

@@ -20,7 +20,7 @@
                     @if($cotisation->id_entreprise)
                         Part Entreprise ({{ $cotisation->entreprise->raison_sociale }})
                     @else
-                        Part Salarié ({{ $cotisation->salarie->prenom }} {{ $cotisation->salarie->nom }})
+                        Part Participant ({{ $cotisation->salarie->prenom }} {{ $cotisation->salarie->nom }})
                     @endif
                 </h5>
                 

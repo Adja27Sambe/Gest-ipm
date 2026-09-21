@@ -15,12 +15,12 @@ class UpdateSalarieRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id_entreprise' => 'nullable|exists:entreprise,id_entreprise',
+            'id_entreprise' => 'nullable|exists:ADHERANT,IDADHERANT',
             'matricule' => [
                 'nullable',
                 'string',
                 'max:50',
-                Rule::unique('salarie')->ignore($this->salarie->id_salarie ?? $this->route('salarie'), 'id_salarie')
+                Rule::unique('PARTICIPANT', 'MATRICULE')->ignore($this->route('salarie')->id ?? $this->route('salarie'), 'IDPARTICIPANT')
             ],
             'nom' => 'sometimes|required|string|max:100',
             'prenom' => 'nullable|string|max:100',

@@ -10,6 +10,7 @@ use App\Models\Demande;
 use App\Models\Facture;
 use App\Models\Praticien;
 use App\Models\Pharmacie;
+use App\Models\PaiementPrestataire;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -23,11 +24,9 @@ class ReportingController extends Controller
         $totalAyantsDroit = AyantDroit::count();
         $totalBeneficiaires = $totalSalaries + $totalAyantsDroit;
 
-        $totalFacture = Facture::sum('montant');
-        
-        // Optimisation N+1: Calculer le total payé pour les factures
-        $totalPaye = Facture::withSum('paiementPrestataires', 'montant')->get()->sum('paiement_prestataires_sum_montant');
-        $totalDu = $totalFacture - $totalPaye;
+        $totalFacture = floatval(Facture::sum('montant'));
+        $totalPaye = floatval(PaiementPrestataire::sum('montant'));
+        $totalDu = max(0, $totalFacture - $totalPaye);
 
         // 2. Données pour le graphique de répartition des demandes par statut
         $demandesParStatut = Demande::select('statut', DB::raw('count(*) as total'))
@@ -52,8 +51,13 @@ class ReportingController extends Controller
         // 3. Évolution des dépenses sur les 6 derniers mois
         $sixMoisAvant = Carbon::now()->subMonths(5)->startOfMonth();
         
+        $driver = DB::connection()->getDriverName();
+        $dateSelect = $driver === 'sqlite' 
+            ? 'strftime("%Y-%m", date_facture) as mois' 
+            : 'DATE_FORMAT(date_facture, "%Y-%m") as mois';
+
         $facturesParMois = Facture::select(
-            DB::raw('DATE_FORMAT(date_facture, "%Y-%m") as mois'),
+            DB::raw($dateSelect),
             DB::raw('SUM(montant) as total')
         )
         ->where('date_facture', '>=', $sixMoisAvant)
@@ -75,7 +79,8 @@ class ReportingController extends Controller
 
         // 4. Aperçu des dernières factures
         $dernieresFactures = Facture::with(['praticien', 'pharmacie'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('date_facture', 'desc')
+            ->orderBy('id_facture', 'desc')
             ->take(5)
             ->get();
 

@@ -37,6 +37,9 @@ return new class extends Migration
                 try {
                     $table->dropForeign(['id_prestataire']);
                 } catch (\Exception $e) {}
+                try {
+                    $table->dropIndex(['id_prestataire']);
+                } catch (\Exception $e) {}
                 $table->dropColumn('id_prestataire');
             }
 
@@ -64,6 +67,7 @@ return new class extends Migration
             $table->dropColumn('id_pharmacie');
             $table->unsignedBigInteger('id_prestataire')->nullable();
             $table->foreign('id_prestataire')->references('id_prestataire')->on('prestataire')->onDelete('restrict');
+            $table->index('id_prestataire');
         });
 
         Schema::table('facture', function (Blueprint $table) {

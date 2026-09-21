@@ -13,8 +13,21 @@ use App\Http\Controllers\Api\CotisationApiController;
 use App\Http\Controllers\PrestataireController;
 use App\Http\Controllers\ConventionController;
 
+use App\Http\Controllers\Api\EntrepriseController;
+use App\Http\Controllers\Api\SalarieController;
+
 // Routes publiques
 Route::post('/login', [AuthController::class, 'login']);
+
+// API Entreprises & Salariés
+Route::apiResource('entreprises', EntrepriseController::class);
+Route::patch('entreprises/{entreprise}/status', [EntrepriseController::class, 'updateStatus']);
+
+Route::get('salaries/search', [SalarieController::class, 'search']);
+Route::get('salaries/{salarie}/famille', [SalarieController::class, 'famille']);
+Route::apiResource('salaries', SalarieController::class)->parameters([
+    'salaries' => 'salarie'
+]);
 
 // Routes protégées par Sanctum
 Route::middleware('auth:sanctum')->group(function () {

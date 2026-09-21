@@ -5,11 +5,13 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-0 text-dark">Cotisations</h2>
-            <p class="text-muted mb-0">Suivi des cotisations des entreprises et des salariés</p>
+            <p class="text-muted mb-0">Suivi des cotisations des entreprises et des participants</p>
         </div>
+        @canedit
         <a href="{{ route('cotisations.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
             <i class="bi bi-plus-lg me-2"></i>Nouvelle Cotisation
         </a>
+        @endcanedit
     </div>
 
     <div class="card border-0 shadow-sm mb-4 rounded-4">
@@ -18,7 +20,7 @@
                 <div class="col-md-8">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique cotisations (période, entreprise, salarié)..." value="{{ request('search') }}" autocomplete="off">
+                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique cotisations (période, entreprise, participant, matricule)..." value="{{ request('search') }}" autocomplete="off">
                     </div>
                 </div>
                 <div class="col-md-4 d-flex align-items-center justify-content-end">
@@ -43,7 +45,7 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link rounded-pill px-4 fw-medium" id="salaries-tab" data-bs-toggle="tab" data-bs-target="#salaries" type="button" role="tab" aria-controls="salaries" aria-selected="false">
-                <i class="bi bi-people me-2"></i>Cotisations Salariés
+                <i class="bi bi-people me-2"></i>Cotisations Participants
             </button>
         </li>
     </ul>
@@ -79,15 +81,17 @@
                                             <span class="fw-medium">{{ $cotisation->entreprise->raison_sociale }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-end font-monospace">{{ number_format($cotisation->masse_salariale, 0, ',', ' ') }} FCFA</td>
-                                    <td class="px-4 py-3 text-center"><span class="badge bg-light text-dark border">{{ $cotisation->taux }}%</span></td>
-                                    <td class="px-4 py-3 text-end fw-bold text-primary font-monospace">{{ number_format($cotisation->montant, 0, ',', ' ') }} FCFA</td>
+                                    <td class="px-4 py-3 text-end font-monospace">{{ number_format($cotisation->masse_salariale ?? 0, 0, ',', ' ') }} FCFA</td>
+                                    <td class="px-4 py-3 text-center"><span class="badge bg-light text-dark border">{{ $cotisation->taux ?? 0 }}%</span></td>
+                                    <td class="px-4 py-3 text-end fw-bold text-primary font-monospace">{{ number_format($cotisation->montant ?? 0, 0, ',', ' ') }} FCFA</td>
                                     <td class="px-4 py-3 text-center">
                                         @if($cotisation->statut == 'payee')
                                             <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-3 py-2 rounded-pill">
                                                 <i class="bi bi-check-circle me-1"></i> Payée
                                             </span>
-                                            <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($cotisation->date_paiement)->format('d/m/Y') }}</div>
+                                            @if($cotisation->date_paiement)
+                                                <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($cotisation->date_paiement)->format('d/m/Y') }}</div>
+                                            @endif
                                         @else
                                             <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-2 rounded-pill">
                                                 <i class="bi bi-x-circle me-1"></i> Impayée
@@ -95,6 +99,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-end">
+                                        @canedit
                                         <div class="btn-group btn-group-sm" role="group" aria-label="Actions cotisation">
                                             @if($cotisation->statut == 'impayee')
                                                 <form action="{{ route('cotisations.payer', $cotisation->id_cotisation) }}" method="POST" class="d-inline" onsubmit="return confirm('Confirmer le paiement ?');">
@@ -115,6 +120,9 @@
                                                 </button>
                                             </form>
                                         </div>
+                                        @else
+                                        <span class="text-muted small">-</span>
+                                        @endcanedit
                                     </td>
                                 </tr>
                             @empty
@@ -139,7 +147,7 @@
             </div>
         </div>
 
-        <!-- Onglet Salariés -->
+        <!-- Onglet Participants -->
         <div class="tab-pane fade" id="salaries" role="tabpanel" aria-labelledby="salaries-tab">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div class="table-responsive">
@@ -170,9 +178,9 @@
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-end font-monospace">{{ number_format($cotisation->salaire_base, 0, ',', ' ') }} FCFA</td>
-                                    <td class="px-4 py-3 text-center"><span class="badge bg-light text-dark border">{{ $cotisation->taux }}%</span></td>
-                                    <td class="px-4 py-3 text-end fw-bold text-primary font-monospace">{{ number_format($cotisation->montant, 0, ',', ' ') }} FCFA</td>
+                                    <td class="px-4 py-3 text-end font-monospace">{{ number_format($cotisation->salaire_base ?? 0, 0, ',', ' ') }} FCFA</td>
+                                    <td class="px-4 py-3 text-center"><span class="badge bg-light text-dark border">{{ $cotisation->taux ?? 0 }}%</span></td>
+                                    <td class="px-4 py-3 text-end fw-bold text-primary font-monospace">{{ number_format($cotisation->montant ?? 0, 0, ',', ' ') }} FCFA</td>
                                     <td class="px-4 py-3 text-center">
                                         @if($cotisation->statut == 'payee')
                                             <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-3 py-2 rounded-pill">
@@ -211,7 +219,7 @@
                                 <tr>
                                     <td colspan="7" class="text-center py-5 text-muted">
                                         <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i>
-                                        Aucune cotisation salarié enregistrée.
+                                        Aucune cotisation participant enregistrée.
                                     </td>
                                 </tr>
                             @endforelse

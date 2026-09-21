@@ -5,7 +5,7 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <a href="{{ route('salaries.show', $carte->salarie) }}" class="btn btn-link text-decoration-none text-secondary p-0 mb-2">
-                <i class="bi bi-arrow-left"></i> Retour au salarié : {{ $carte->salarie->prenom }} {{ $carte->salarie->nom }}
+                <i class="bi bi-arrow-left"></i> Retour au participant : {{ $carte->salarie->prenom }} {{ $carte->salarie->nom }}
             </a>
             <h1 class="h3 mb-0 text-dark font-weight-bold">Carte Participant Assuré (Recto - Verso)</h1>
             <p class="text-muted mb-0">Téléchargement des visuels au format d'image PNG et PDF</p>
@@ -25,3 +25,14 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    window.addEventListener('load', function() {
+        // Un léger délai pour s'assurer que les images et les styles sont bien chargés
+        setTimeout(function() {
+            window.print();
+        }, 500);
+    });
+</script>
+@endpush

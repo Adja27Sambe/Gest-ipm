@@ -20,11 +20,11 @@ class EntrepriseController extends Controller
         $query = Entreprise::withCount('salaries')->with('relances');
 
         if ($request->filled('raison_sociale')) {
-            $query->where('raison_sociale', 'like', '%' . $request->raison_sociale . '%');
+            $query->where('ADHERANT', 'like', '%' . $request->raison_sociale . '%');
         }
 
         if ($request->filled('code_adherent')) {
-            $query->where('code_adherent', $request->code_adherent);
+            $query->where('CODEADHERANT', $request->code_adherent);
         }
 
         if ($request->filled('statut')) {

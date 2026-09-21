@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mt-4">
     <div class="mb-4 d-flex justify-content-between align-items-center">
-        <h2>Dossier Médical de {{ $beneficiaire->prenom }} {{ $beneficiaire->nom }}</h2>
+        <h2>Historique de la demande de {{ $beneficiaire->prenom }} {{ $beneficiaire->nom }}</h2>
         <a href="{{ route('dossier-medical.index') }}" class="btn btn-secondary">Retour à la recherche</a>
     </div>
 
@@ -24,6 +24,7 @@
     @endif
 
     <div class="row">
+        @canedit
         <!-- Formulaire d'ajout -->
         <div class="col-md-4">
             <div class="card mb-4 shadow-sm">
@@ -43,8 +44,8 @@
                             <label class="form-label">Prestataire (Optionnel)</label>
                             <select name="id_prestataire" class="form-select">
                                 <option value="">-- Sélectionner --</option>
-                                @foreach($prestataires as $prestataire)
-                                    <option value="{{ $prestataire->id_prestataire }}">{{ $prestataire->nom }}</option>
+                                @foreach($prestataires as $p)
+                                    <option value="{{ $p->id_prestataire }}">{{ $p->nom }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -53,8 +54,8 @@
                             <label class="form-label">Pathologie (Optionnel)</label>
                             <select name="id_pathologie" class="form-select">
                                 <option value="">-- Sélectionner --</option>
-                                @foreach($pathologies as $pathologie)
-                                    <option value="{{ $pathologie->id_pathologie }}">{{ $pathologie->nom }}</option>
+                                @foreach($pathologies as $path)
+                                    <option value="{{ $path->id_pathologie }}">{{ $path->libelle }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -75,30 +76,33 @@
                         </div>
 
                         <hr>
-                        <h5>Prescriptions</h5>
+                        <h6>Prescriptions de Médicaments</h6>
                         <div id="prescriptions-container">
-                            <div class="prescription-row mb-2 p-2 border rounded bg-light">
+                            <div class="prescription-row mb-2">
                                 <input type="text" name="prescriptions[0][medicament]" class="form-control form-control-sm mb-1" placeholder="Médicament (ex: Paracétamol)">
-                                <div class="input-group input-group-sm">
-                                    <input type="text" name="prescriptions[0][posologie]" class="form-control" placeholder="Posologie (ex: 2x/jour)">
-                                    <input type="text" name="prescriptions[0][duree]" class="form-control" placeholder="Durée (ex: 5 jours)">
+                                <div class="row g-1">
+                                    <div class="col-6"><input type="text" name="prescriptions[0][posologie]" class="form-control" placeholder="Posologie (ex: 2x/jour)"></div>
+                                    <div class="col-6"><input type="text" name="prescriptions[0][duree]" class="form-control" placeholder="Durée (ex: 5 jours)"></div>
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="addPrescription()">+ Ajouter un autre médicament</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" id="add-prescription">
+                            <i class="fas fa-plus"></i> Ajouter un médicament
+                        </button>
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i> Enregistrer dans le dossier
+                                <i class="fas fa-save"></i> Enregistrer dans l'historique
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+        @endcanedit
 
         <!-- Historique Chronologique -->
-        <div class="col-md-8">
+        <div class="@canedit col-md-8 @else col-md-12 @endcanedit">
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white">
                     <strong>Historique Chronologique</strong>

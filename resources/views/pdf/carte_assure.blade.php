@@ -198,8 +198,8 @@
                 <!-- Left Column -->
                 <td class="left-col">
                     <div class="photo-circle">
-                        @if($salarie->photo)
-                            <img src="{{ $salarie->photo->url }}" class="photo-img">
+                        @if($salarie->photo_url)
+                            <img src="{{ $salarie->photo_url }}" class="photo-img">
                         @else
                             <div style="font-size: 10pt; color: #777; margin-top: 4mm;">P</div>
                         @endif
