@@ -15,7 +15,7 @@
     </div>
 
     @php
-        $canSeeFacturation = auth()->check() && auth()->user()->canViewFacturationStats();
+        $canSeeFacturation = $canSeeFacturation ?? (auth()->check() && auth()->user()->canViewFacturationStats());
     @endphp
 
     <!-- KPIs Top Section -->

@@ -18,77 +18,90 @@ class ReportingController extends Controller
 {
     public function index()
     {
-        // 1. KPIs de base
+        $canSeeFacturation = auth()->check() && auth()->user()->canViewFacturationStats();
+
+        // 1. KPIs globaux (rapides et nécessaires pour tous les utilisateurs)
         $totalEntreprises = Entreprise::count();
         $totalSalaries = Salarie::count();
         $totalAyantsDroit = AyantDroit::count();
         $totalBeneficiaires = $totalSalaries + $totalAyantsDroit;
 
-        $totalFacture = floatval(Facture::sum('montant'));
-        $totalPaye = floatval(PaiementPrestataire::sum('montant'));
-        $totalDu = max(0, $totalFacture - $totalPaye);
-
-        // 2. Données pour le graphique de répartition des demandes par statut
-        $demandesParStatut = Demande::select('statut', DB::raw('count(*) as total'))
-            ->groupBy('statut')
-            ->get();
-            
-        $labelsStatut = [];
-        $dataStatut = [];
-        $colorsStatut = [];
-        
-        foreach ($demandesParStatut as $demande) {
-            $labelsStatut[] = ucfirst($demande->statut);
-            $dataStatut[] = $demande->total;
-            
-            // Attribution des couleurs
-            if ($demande->statut == 'approuvee') $colorsStatut[] = '#198754'; // Success
-            elseif ($demande->statut == 'rejetee') $colorsStatut[] = '#dc3545'; // Danger
-            elseif ($demande->statut == 'en_attente') $colorsStatut[] = '#ffc107'; // Warning
-            else $colorsStatut[] = '#6c757d'; // Secondary
-        }
-
-        // 3. Évolution des dépenses sur les 6 derniers mois
-        $sixMoisAvant = Carbon::now()->subMonths(5)->startOfMonth();
-        
-        $driver = DB::connection()->getDriverName();
-        $dateSelect = $driver === 'sqlite' 
-            ? 'strftime("%Y-%m", date_facture) as mois' 
-            : 'DATE_FORMAT(date_facture, "%Y-%m") as mois';
-
-        $facturesParMois = Facture::select(
-            DB::raw($dateSelect),
-            DB::raw('SUM(montant) as total')
-        )
-        ->where('date_facture', '>=', $sixMoisAvant)
-        ->groupBy('mois')
-        ->orderBy('mois')
-        ->get();
-
-        $labelsEvolution = [];
-        $dataEvolution = [];
-        
-        // Initialiser les 6 derniers mois à 0
-        for ($i = 5; $i >= 0; $i--) {
-            $mois = Carbon::now()->subMonths($i)->format('Y-m');
-            $labelsEvolution[] = Carbon::now()->subMonths($i)->translatedFormat('M Y');
-            
-            $facture = $facturesParMois->firstWhere('mois', $mois);
-            $dataEvolution[] = $facture ? $facture->total : 0;
-        }
-
-        // 4. Aperçu des dernières factures
-        $dernieresFactures = Facture::with(['praticien', 'pharmacie'])
-            ->orderBy('date_facture', 'desc')
-            ->orderBy('id_facture', 'desc')
-            ->take(5)
-            ->get();
-
-        // Partenaires
+        // Partenaires de santé
         $totalPraticiens = Praticien::count();
         $totalPharmacies = Pharmacie::count();
 
+        // 2. Répartition des demandes par statut (optimisé avec pluck direct)
+        $demandesParStatut = Demande::select('statut', DB::raw('count(*) as total'))
+            ->groupBy('statut')
+            ->pluck('total', 'statut');
+
+        $statusConfig = [
+            'approuvee'   => ['label' => 'Approuvée',   'color' => '#198754'],
+            'rejetee'     => ['label' => 'Rejetée',     'color' => '#dc3545'],
+            'en_attente'  => ['label' => 'En attente',  'color' => '#ffc107'],
+        ];
+
+        $labelsStatut = [];
+        $dataStatut = [];
+        $colorsStatut = [];
+
+        foreach ($demandesParStatut as $statut => $total) {
+            $config = $statusConfig[$statut] ?? [
+                'label' => ucfirst(str_replace('_', ' ', (string) $statut)),
+                'color' => '#6c757d'
+            ];
+            $labelsStatut[] = $config['label'];
+            $dataStatut[] = (int) $total;
+            $colorsStatut[] = $config['color'];
+        }
+
+        // 3. Données financières (chargées UNIQUEMENT si l'utilisateur est autorisé)
+        $totalFacture = 0;
+        $totalPaye = 0;
+        $totalDu = 0;
+        $labelsEvolution = [];
+        $dataEvolution = [];
+        $dernieresFactures = collect();
+
+        if ($canSeeFacturation) {
+            $totalFacture = floatval(Facture::sum('montant'));
+            $totalPaye = floatval(PaiementPrestataire::sum('montant'));
+            $totalDu = max(0, $totalFacture - $totalPaye);
+
+            // Évolution des dépenses sur les 6 derniers mois
+            $sixMoisAvant = Carbon::now()->subMonths(5)->startOfMonth();
+            
+            $driver = DB::connection()->getDriverName();
+            $dateSelect = $driver === 'sqlite' 
+                ? 'strftime("%Y-%m", date_facture) as mois' 
+                : 'DATE_FORMAT(date_facture, "%Y-%m") as mois';
+
+            $facturesParMois = Facture::select(
+                DB::raw($dateSelect),
+                DB::raw('SUM(montant) as total')
+            )
+            ->where('date_facture', '>=', $sixMoisAvant)
+            ->groupBy('mois')
+            ->pluck('total', 'mois');
+
+            // Initialiser les 6 derniers mois (recherche O(1) par clé associative)
+            for ($i = 5; $i >= 0; $i--) {
+                $dateMois = Carbon::now()->subMonths($i);
+                $cleMois = $dateMois->format('Y-m');
+                $labelsEvolution[] = $dateMois->translatedFormat('M Y');
+                $dataEvolution[] = floatval($facturesParMois[$cleMois] ?? 0);
+            }
+
+            // Aperçu des 5 dernières factures
+            $dernieresFactures = Facture::with(['praticien', 'pharmacie'])
+                ->orderBy('date_facture', 'desc')
+                ->orderBy('id_facture', 'desc')
+                ->take(5)
+                ->get();
+        }
+
         return view('reporting.index', compact(
+            'canSeeFacturation',
             'totalEntreprises',
             'totalBeneficiaires',
             'totalFacture',
