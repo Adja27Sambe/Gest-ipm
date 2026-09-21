@@ -30,13 +30,8 @@ class CarteAssureController extends Controller
             $numeroCarte = 'IPM-' . now()->format('Ymd') . '-' . strtoupper(Str::random(4));
         }
 
-        // Générer le contenu du QR Code
-        $qrContent = json_encode([
-            'numero' => $numeroCarte,
-            'salarie' => $salarie->prenom . ' ' . $salarie->nom,
-            'matricule' => $salarie->matricule,
-            'statut' => CarteAssure::STATUT_ACTIF
-        ]);
+        // Générer le contenu du QR Code : lien vers le dossier du participant
+        $qrContent = route('salaries.show', $salarie);
 
         // Générer le QR code en SVG
         $qrCodeSvg = (string) QrCode::format('svg')->size(150)->generate($qrContent);

@@ -260,13 +260,7 @@
                     {{-- Informations utiles verso --}}
                     <div style="font-size:9.5px;color:rgba(255,255,255,.65);line-height:1.7;max-width:380px;">
                         <strong style="color:rgba(255,255,255,.9);">En cas d'urgence :</strong> Présentez cette carte à tout prestataire du réseau conventionné.<br>
-                        <strong style="color:rgba(255,255,255,.9);">Statut :</strong>
-                        @if($statut === 'actif')
-                            <span style="color:#4ade80;font-weight:700;">● ACTIF</span>
-                        @else
-                            <span style="color:#f87171;font-weight:700;">● {{ mb_strtoupper($statut) }}</span>
-                        @endif
-                        &nbsp;|&nbsp; <strong style="color:rgba(255,255,255,.9);">Carte N° :</strong> {{ $numeroCarte }}
+                        <strong style="color:rgba(255,255,255,.9);">Carte N° :</strong> {{ $numeroCarte }}
                     </div>
                 </div>
 

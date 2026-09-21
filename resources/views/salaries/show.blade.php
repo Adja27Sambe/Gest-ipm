@@ -66,7 +66,7 @@
                     </div>
                     
                     <div class="mb-3">
-                        <small class="text-muted d-block">Statut</small>
+                        <small class="text-muted d-block">Statut du dossier</small>
                         @if($salarie->statut == 'actif')
                             <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-pill">Actif</span>
                         @elseif($salarie->statut == 'suspendu')
@@ -75,6 +75,17 @@
                             <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill">Radié</span>
                         @endif
                     </div>
+                    
+                    @if($salarie->carteAssure)
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Statut de la Carte</small>
+                        @if($salarie->carteAssure->statut == 'actif')
+                            <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-pill"><i class="bi bi-check-circle me-1"></i>Carte Active</span>
+                        @else
+                            <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill"><i class="bi bi-x-circle me-1"></i>Carte {{ mb_strtoupper($salarie->carteAssure->statut) }}</span>
+                        @endif
+                    </div>
+                    @endif
                     
                     <div class="mb-3">
                         <small class="text-muted d-block">Sexe</small>
