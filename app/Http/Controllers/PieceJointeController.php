@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
+use App\Exports\PieceJointeExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PieceJointeController extends Controller
 {
@@ -148,5 +150,15 @@ class PieceJointeController extends Controller
         $piece->delete();
 
         return back()->with('success', 'Pièce jointe supprimée.');
+    }
+
+    /**
+     * Exporter la liste des pièces jointes
+     */
+    public function export(Request $request)
+    {
+        $export = new PieceJointeExport($request->id_categorie);
+        $filename = 'export_documents_' . date('Ymd_His') . '.xlsx';
+        return Excel::download($export, $filename);
     }
 }

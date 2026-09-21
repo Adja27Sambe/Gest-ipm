@@ -139,6 +139,7 @@ Route::middleware('auth')->group(function () {
 
     // Gestion Documentaire (Pièces Jointes)
     Route::middleware('can:gerer_pieces_jointes')->group(function() {
+        Route::get('pieces-jointes/export', [App\Http\Controllers\PieceJointeController::class, 'export'])->name('pieces-jointes.export');
         Route::get('pieces-jointes', [App\Http\Controllers\PieceJointeController::class, 'index'])->name('pieces-jointes.index');
         Route::post('pieces-jointes', [App\Http\Controllers\PieceJointeController::class, 'store'])->name('pieces-jointes.store');
         Route::get('pieces-jointes/{pieceJointe}/view', [App\Http\Controllers\PieceJointeController::class, 'show'])->name('pieces-jointes.show');

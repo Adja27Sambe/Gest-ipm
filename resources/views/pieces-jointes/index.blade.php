@@ -4,6 +4,9 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-folder-open text-primary me-2"></i>Gestion Documentaire</h1>
+        <a href="{{ route('pieces-jointes.export', request()->query()) }}" class="btn btn-success shadow-sm rounded-pill px-3">
+            <i class="fas fa-file-excel me-2"></i>Exporter Excel
+        </a>
     </div>
 
     @if(session('success'))
