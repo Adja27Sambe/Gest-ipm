@@ -30,7 +30,7 @@
             <div class="card border-0 shadow-sm rounded-4 bg-success text-white h-100">
                 <div class="card-body p-4 text-center">
                     <h6 class="text-uppercase mb-2 text-white-50">Total Prise en charge</h6>
-                    <h2 class="mb-0 fw-bold">{{ number_format($prestations->sum('taux_prise_charge'), 0, ',', ' ') }} FCFA</h2>
+                    <h2 class="mb-0 fw-bold">{{ number_format($prestations->sum('montant') - $prestations->sum('reste_a_charge'), 0, ',', ' ') }} FCFA</h2>
                 </div>
             </div>
         </div>
@@ -84,7 +84,7 @@
                                     @endif
                                 </td>
                                 <td class="text-end fw-bold">{{ number_format($prestation->montant, 0, ',', ' ') }} FCFA</td>
-                                <td class="text-end text-success">{{ number_format($prestation->taux_prise_charge, 0, ',', ' ') }} FCFA</td>
+                                <td class="text-end text-success">{{ number_format($prestation->montant - $prestation->reste_a_charge, 0, ',', ' ') }} FCFA ({{ number_format($prestation->taux_prise_charge, 0) }}%)</td>
                                 <td class="text-end text-danger">{{ number_format($prestation->reste_a_charge, 0, ',', ' ') }} FCFA</td>
                             </tr>
                         @empty

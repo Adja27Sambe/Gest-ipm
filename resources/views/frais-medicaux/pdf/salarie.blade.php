@@ -3,7 +3,7 @@
     <table style="width: 100%; border:none;">
         <tr>
             <td>Total Facturé: <span class="font-bold">{{ number_format($prestations->sum('montant'), 0, ',', ' ') }} FCFA</span></td>
-            <td>Prise en charge (IPM): <span class="font-bold text-success">{{ number_format($prestations->sum('taux_prise_charge'), 0, ',', ' ') }} FCFA</span></td>
+            <td>Prise en charge (IPM): <span class="font-bold text-success">{{ number_format($prestations->sum('montant') - $prestations->sum('reste_a_charge'), 0, ',', ' ') }} FCFA</span></td>
             <td>Ticket Modérateur: <span class="font-bold text-danger">{{ number_format($prestations->sum('reste_a_charge'), 0, ',', ' ') }} FCFA</span></td>
         </tr>
     </table>
@@ -37,7 +37,7 @@
                     @endif
                 </td>
                 <td class="text-right font-bold">{{ number_format($prestation->montant, 0, ',', ' ') }}</td>
-                <td class="text-right text-success">{{ number_format($prestation->taux_prise_charge, 0, ',', ' ') }}</td>
+                <td class="text-right text-success">{{ number_format($prestation->montant - $prestation->reste_a_charge, 0, ',', ' ') }} ({{ number_format($prestation->taux_prise_charge, 0) }}%)</td>
                 <td class="text-right text-danger">{{ number_format($prestation->reste_a_charge, 0, ',', ' ') }}</td>
             </tr>
         @empty

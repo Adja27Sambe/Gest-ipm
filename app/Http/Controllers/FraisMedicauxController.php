@@ -33,7 +33,7 @@ class FraisMedicauxController extends Controller
             
             $entreprise->total_prise_charge = Prestation::whereHas('demande.salarie', function($q) use ($entreprise) {
                 $q->where('IDADHERANT', $entreprise->IDADHERANT);
-            })->sum('taux_prise_charge');
+            })->sum(DB::raw('montant - reste_a_charge'));
             
             $entreprise->total_reste_charge = Prestation::whereHas('demande.salarie', function($q) use ($entreprise) {
                 $q->where('IDADHERANT', $entreprise->IDADHERANT);
@@ -59,7 +59,7 @@ class FraisMedicauxController extends Controller
             
             $salarie->total_prise_charge = Prestation::whereHas('demande', function($q) use ($salarie) {
                 $q->where('id_salarie', $salarie->IDPARTICIPANT);
-            })->sum('taux_prise_charge');
+            })->sum(DB::raw('montant - reste_a_charge'));
             
             $salarie->total_reste_charge = Prestation::whereHas('demande', function($q) use ($salarie) {
                 $q->where('id_salarie', $salarie->IDPARTICIPANT);
@@ -101,9 +101,9 @@ class FraisMedicauxController extends Controller
                     $q->where('IDADHERANT', $entreprise->IDADHERANT);
                 })->sum('montant');
                 
-                $entreprise->total_prise_charge = Prestation::whereHas('demande.salarie', function($q) use ($entreprise) {
-                    $q->where('IDADHERANT', $entreprise->IDADHERANT);
-                })->sum('taux_prise_charge');
+            $entreprise->total_prise_charge = Prestation::whereHas('demande.salarie', function($q) use ($entreprise) {
+                $q->where('IDADHERANT', $entreprise->IDADHERANT);
+            })->sum(DB::raw('montant - reste_a_charge'));
             }
             $data['entreprises'] = $entreprises;
             $data['title'] = 'Rapport Global des Frais Médicaux par Adhérent';
@@ -118,7 +118,7 @@ class FraisMedicauxController extends Controller
                 })->sum('montant');
                 $salarie->total_prise_charge = Prestation::whereHas('demande', function($q) use ($salarie) {
                     $q->where('id_salarie', $salarie->IDPARTICIPANT);
-                })->sum('taux_prise_charge');
+                })->sum(DB::raw('montant - reste_a_charge'));
             }
             $data['entreprise'] = $entreprise;
             $data['salaries'] = $salaries;
