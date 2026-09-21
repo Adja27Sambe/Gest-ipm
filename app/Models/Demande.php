@@ -66,6 +66,11 @@ class Demande extends Model
         return $this->belongsTo(TypePrestation::class, 'id_type_prestation', 'id_type_prestation');
     }
 
+    public function prestations()
+    {
+        return $this->hasMany(Prestation::class, 'id_demande', 'id_demande');
+    }
+
     public function getIsBonCommandeAttribute(): bool
     {
         return $this->bonCommande !== null || ($this->typeDemande && str_contains(strtolower($this->typeDemande->libelle), 'bon'));

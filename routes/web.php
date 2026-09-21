@@ -137,6 +137,14 @@ Route::middleware('auth')->group(function () {
     // Paramètres de Couverture
     Route::resource('parametres-couverture', App\Http\Controllers\ParametreCouvertureController::class)->except(['show'])->middleware('can:gerer_parametres_couverture');
 
+    // Module Frais Médicaux (Adhérents & Participants)
+    Route::middleware('can:voir_audit')->group(function() {
+        Route::get('frais-medicaux/export-pdf', [App\Http\Controllers\FraisMedicauxController::class, 'exportPdf'])->name('frais-medicaux.export-pdf');
+        Route::get('frais-medicaux/salarie/{id}', [App\Http\Controllers\FraisMedicauxController::class, 'showSalarie'])->name('frais-medicaux.salarie');
+        Route::get('frais-medicaux/entreprise/{id}', [App\Http\Controllers\FraisMedicauxController::class, 'showEntreprise'])->name('frais-medicaux.entreprise');
+        Route::get('frais-medicaux', [App\Http\Controllers\FraisMedicauxController::class, 'index'])->name('frais-medicaux.index');
+    });
+
     // Gestion Documentaire (Pièces Jointes)
     Route::middleware('can:gerer_pieces_jointes')->group(function() {
         Route::get('pieces-jointes/export', [App\Http\Controllers\PieceJointeController::class, 'export'])->name('pieces-jointes.export');

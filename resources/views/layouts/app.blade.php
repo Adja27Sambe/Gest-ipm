@@ -412,6 +412,11 @@
                         <i class="bi bi-wallet2"></i> Factures Prestataires
                     </a>
                     @endcan
+                    @can('voir_audit')
+                    <a href="{{ route('frais-medicaux.index') }}" class="sidebar-link {{ request()->routeIs('frais-medicaux.*') ? 'active' : '' }}">
+                        <i class="bi bi-file-medical"></i> Frais Médicaux
+                    </a>
+                    @endcan
                     
                     <hr class="text-secondary opacity-25 my-3">
                     
