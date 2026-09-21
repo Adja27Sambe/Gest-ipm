@@ -14,10 +14,14 @@
         </div>
     </div>
 
+    @php
+        $canSeeFacturation = auth()->check() && auth()->user()->canViewFacturationStats();
+    @endphp
+
     <!-- KPIs Top Section -->
     <div class="row g-4 mb-5">
         <!-- Adhérents -->
-        <div class="col-md-3">
+        <div class="{{ $canSeeFacturation ? 'col-md-3' : 'col-md-6' }}">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white overflow-hidden" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div class="card-body p-4 d-flex align-items-center">
                     <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex justify-content-center align-items-center me-3 flex-shrink-0" style="width: 50px; height: 50px;">
@@ -32,7 +36,7 @@
         </div>
 
         <!-- Bénéficiaires -->
-        <div class="col-md-3">
+        <div class="{{ $canSeeFacturation ? 'col-md-3' : 'col-md-6' }}">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white overflow-hidden" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <div class="card-body p-4 d-flex align-items-center">
                     <div class="bg-info bg-opacity-10 text-info rounded-circle d-flex justify-content-center align-items-center me-3 flex-shrink-0" style="width: 50px; height: 50px;">
@@ -46,6 +50,7 @@
             </div>
         </div>
 
+        @if($canSeeFacturation)
         <!-- Total Facturé -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white overflow-hidden" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
@@ -75,10 +80,12 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
     <!-- Charts Section -->
     <div class="row g-4 mb-5">
+        @if($canSeeFacturation)
         <!-- Évolution Dépenses -->
         <div class="col-md-8">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
@@ -92,9 +99,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Répartition Statuts -->
-        <div class="col-md-4">
+        <div class="{{ $canSeeFacturation ? 'col-md-4' : 'col-md-12' }}">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
                 <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
                     <h6 class="fw-bold mb-0 d-flex align-items-center">
@@ -102,7 +110,9 @@
                     </h6>
                 </div>
                 <div class="card-body p-4 d-flex justify-content-center align-items-center">
-                    <canvas id="statutChart" height="200"></canvas>
+                    <div style="max-height: 280px; width: 100%; max-width: {{ $canSeeFacturation ? '100%' : '380px' }};">
+                        <canvas id="statutChart" height="200"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,7 +121,7 @@
     <!-- Bottom Section: Dernières Factures & Partenaires -->
     <div class="row g-4">
         <!-- Partenaires -->
-        <div class="col-md-4">
+        <div class="{{ $canSeeFacturation ? 'col-md-4' : 'col-md-12' }}">
             <div class="card border-0 shadow-sm rounded-4 bg-primary text-white overflow-hidden position-relative h-100">
                 <div class="position-absolute top-0 end-0 opacity-25 p-4" style="transform: translate(20%, -20%);">
                     <i class="bi bi-hospital" style="font-size: 8rem;"></i>
@@ -119,13 +129,15 @@
                 <div class="card-body p-4 position-relative z-1 d-flex flex-column justify-content-between">
                     <div>
                         <h5 class="fw-bold mb-4">Réseau de Santé</h5>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="fs-5 opacity-75">Praticiens</span>
-                            <h2 class="fw-bold mb-0">{{ $totalPraticiens }}</h2>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fs-5 opacity-75">Pharmacies</span>
-                            <h2 class="fw-bold mb-0">{{ $totalPharmacies }}</h2>
+                        <div class="row {{ $canSeeFacturation ? '' : 'g-4' }}">
+                            <div class="{{ $canSeeFacturation ? 'd-flex justify-content-between align-items-center mb-3' : 'col-md-6 d-flex justify-content-between align-items-center' }}">
+                                <span class="fs-5 opacity-75">Praticiens</span>
+                                <h2 class="fw-bold mb-0">{{ $totalPraticiens }}</h2>
+                            </div>
+                            <div class="{{ $canSeeFacturation ? 'd-flex justify-content-between align-items-center' : 'col-md-6 d-flex justify-content-between align-items-center' }}">
+                                <span class="fs-5 opacity-75">Pharmacies</span>
+                                <h2 class="fw-bold mb-0">{{ $totalPharmacies }}</h2>
+                            </div>
                         </div>
                     </div>
                     <div class="mt-4 pt-3 border-top border-white border-opacity-25">
@@ -135,6 +147,7 @@
             </div>
         </div>
 
+        @if($canSeeFacturation)
         <!-- Dernières factures -->
         <div class="col-md-8">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
@@ -187,6 +200,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 </div>
 
@@ -196,80 +210,86 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Chart: Évolution des Dépenses (Bar Chart)
-    const evolutionCtx = document.getElementById('evolutionChart').getContext('2d');
-    
-    // Gradient pour les barres
-    let gradient = evolutionCtx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(13, 110, 253, 0.8)'); // Primary color
-    gradient.addColorStop(1, 'rgba(13, 110, 253, 0.2)');
+    const evolutionEl = document.getElementById('evolutionChart');
+    if (evolutionEl) {
+        const evolutionCtx = evolutionEl.getContext('2d');
+        
+        // Gradient pour les barres
+        let gradient = evolutionCtx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(13, 110, 253, 0.8)'); // Primary color
+        gradient.addColorStop(1, 'rgba(13, 110, 253, 0.2)');
 
-    new Chart(evolutionCtx, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode($labelsEvolution) !!},
-            datasets: [{
-                label: 'Montant Facturé (FCFA)',
-                data: {!! json_encode($dataEvolution) !!},
-                backgroundColor: gradient,
-                borderColor: '#0d6efd',
-                borderWidth: 1,
-                borderRadius: 6,
-                hoverBackgroundColor: '#0d6efd'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return new Intl.NumberFormat('fr-FR').format(context.raw) + ' FCFA';
-                        }
-                    }
-                }
+        new Chart(evolutionCtx, {
+            type: 'bar',
+            data: {
+                labels: {!! json_encode($labelsEvolution) !!},
+                datasets: [{
+                    label: 'Montant Facturé (FCFA)',
+                    data: {!! json_encode($dataEvolution) !!},
+                    backgroundColor: gradient,
+                    borderColor: '#0d6efd',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    hoverBackgroundColor: '#0d6efd'
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { borderDash: [5, 5], color: '#e9ecef' },
-                    ticks: {
-                        callback: function(value) {
-                            return value >= 1000000 ? (value / 1000000) + 'M' : value;
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return new Intl.NumberFormat('fr-FR').format(context.raw) + ' FCFA';
+                            }
                         }
                     }
                 },
-                x: {
-                    grid: { display: false }
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [5, 5], color: '#e9ecef' },
+                        ticks: {
+                            callback: function(value) {
+                                return value >= 1000000 ? (value / 1000000) + 'M' : value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 
     // 2. Chart: Statut des Demandes (Doughnut Chart)
-    const statutCtx = document.getElementById('statutChart').getContext('2d');
-    new Chart(statutCtx, {
-        type: 'doughnut',
-        data: {
-            labels: {!! json_encode($labelsStatut) !!},
-            datasets: [{
-                data: {!! json_encode($dataStatut) !!},
-                backgroundColor: {!! json_encode($colorsStatut) !!},
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { usePointStyle: true, padding: 20 }
+    const statutEl = document.getElementById('statutChart');
+    if (statutEl) {
+        const statutCtx = statutEl.getContext('2d');
+        new Chart(statutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {!! json_encode($labelsStatut) !!},
+                datasets: [{
+                    data: {!! json_encode($dataStatut) !!},
+                    backgroundColor: {!! json_encode($colorsStatut) !!},
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { usePointStyle: true, padding: 20 }
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 });
 </script>
 @endsection

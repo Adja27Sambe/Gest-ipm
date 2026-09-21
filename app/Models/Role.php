@@ -61,4 +61,28 @@ class Role extends Model
     {
         return !$this->isReadOnly();
     }
+
+    /**
+     * Vérifie si le rôle a accès aux statistiques financières de facturation
+     * (Réservé aux services de facturation, au superviseur et à l'administrateur).
+     */
+    public function canViewFacturationStats(): bool
+    {
+        $libelle = strtolower($this->libelle ?? '');
+        $code = strtolower($this->code ?? '');
+
+        if ($libelle === 'administrateur' || $code === 'administrateur') {
+            return true;
+        }
+
+        if (str_contains($libelle, 'supervis') || str_contains($code, 'supervis')) {
+            return true;
+        }
+
+        if (str_contains($libelle, 'facturation') || str_contains($code, 'facturation')) {
+            return true;
+        }
+
+        return $this->hasPermission('gerer_facturation') || $this->hasPermission('Gérer la facturation');
+    }
 }

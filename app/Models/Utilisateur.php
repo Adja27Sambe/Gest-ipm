@@ -89,4 +89,13 @@ class Utilisateur extends Authenticatable
     {
         return !$this->isReadOnly();
     }
+
+    /**
+     * Détermine si l'utilisateur peut visualiser les statistiques de facturation (Total Facturé et Reste à Payer).
+     * Réservé aux services de facturation, au superviseur et à l'administrateur.
+     */
+    public function canViewFacturationStats(): bool
+    {
+        return $this->role ? $this->role->canViewFacturationStats() : false;
+    }
 }

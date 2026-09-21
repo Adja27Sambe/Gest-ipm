@@ -53,6 +53,11 @@ class AppServiceProvider extends ServiceProvider
             return auth()->check() && auth()->user()->isReadOnly();
         });
 
+        // --- Directive pour l'accès aux statistiques de facturation (services facturation & superviseur) ---
+        \Illuminate\Support\Facades\Blade::if('canviewfacturationstats', function () {
+            return auth()->check() && auth()->user()->canViewFacturationStats();
+        });
+
         // --- Optimisation Mode Strict ---
         \Illuminate\Database\Eloquent\Model::preventLazyLoading(!app()->isProduction());
 
