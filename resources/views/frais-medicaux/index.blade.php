@@ -6,7 +6,7 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-file-invoice-dollar text-primary me-2"></i>Frais Médicaux (Adhérents)
         </h1>
-        <a href="{{ route('frais-medicaux.export-pdf', ['type' => 'global']) }}" class="btn btn-danger shadow-sm rounded-pill px-3">
+        <a href="{{ route('frais-medicaux.export-pdf', ['type' => 'global']) }}" target="_blank" class="btn btn-danger shadow-sm rounded-pill px-3">
             <i class="fas fa-file-pdf me-2"></i>Exporter PDF Global
         </a>
     </div>

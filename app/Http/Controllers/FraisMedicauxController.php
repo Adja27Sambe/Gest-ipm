@@ -144,6 +144,6 @@ class FraisMedicauxController extends Controller
         $pdf->setPaper('A4', 'landscape'); // Format paysage mieux pour les tableaux
 
         $filename = 'frais_medicaux_' . $type . '_' . date('Ymd_His') . '.pdf';
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 }
