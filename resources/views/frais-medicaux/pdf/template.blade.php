@@ -93,11 +93,23 @@
 <body>
 
     <div class="header">
+        @php
+            $logoPath = public_path('logo.png');
+            $logoBase64 = '';
+            if (file_exists($logoPath)) {
+                $logoData = file_get_contents($logoPath);
+                $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            }
+        @endphp
         <table>
             <tr>
                 <td width="50%">
-                    <!-- Remplacez par le logo s'il existe -->
-                    <strong style="font-size: 24px; color: #004b93;">IPM GEST</strong><br>
+                    @if($logoBase64)
+                        <img src="{{ $logoBase64 }}" alt="Logo IPM" style="max-height: 45px; object-fit: contain;">
+                    @else
+                        <strong style="font-size: 24px; color: #004b93;">IPM GEST</strong>
+                    @endif
+                    <br>
                     <span style="color: #666; font-size: 11px;">Institution de Prévoyance Maladie</span>
                 </td>
                 <td width="50%" class="header-title">
