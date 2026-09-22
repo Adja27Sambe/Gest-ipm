@@ -22,6 +22,7 @@ class Praticien extends Model
         'nom'               => 'NOMPRAT',
         'adresse'           => 'ADRPRAT',
         'telephone'         => 'TELPRAT',
+        'email'             => 'EMAILPRAT',
         'specialite'        => 'SPECIALITE',
         'contact'           => 'CONTACT',
         'tel_contact'       => 'TELCONTACT',
