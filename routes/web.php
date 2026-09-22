@@ -140,6 +140,7 @@ Route::middleware('auth')->group(function () {
     // Module Frais Médicaux (Adhérents & Participants)
     Route::middleware('can:voir_audit')->group(function() {
         Route::get('frais-medicaux/export-pdf', [App\Http\Controllers\FraisMedicauxController::class, 'exportPdf'])->name('frais-medicaux.export-pdf');
+        Route::get('frais-medicaux/export-excel', [App\Http\Controllers\FraisMedicauxController::class, 'exportExcel'])->name('frais-medicaux.export-excel');
         Route::get('frais-medicaux/salarie/{id}', [App\Http\Controllers\FraisMedicauxController::class, 'showSalarie'])->name('frais-medicaux.salarie');
         Route::get('frais-medicaux/entreprise/{id}', [App\Http\Controllers\FraisMedicauxController::class, 'showEntreprise'])->name('frais-medicaux.entreprise');
         Route::get('frais-medicaux', [App\Http\Controllers\FraisMedicauxController::class, 'index'])->name('frais-medicaux.index');

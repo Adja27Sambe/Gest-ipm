@@ -8,6 +8,8 @@ use App\Models\Salarie;
 use App\Models\Prestation;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\FraisMedicauxExport;
 
 class FraisMedicauxController extends Controller
 {
@@ -89,9 +91,8 @@ class FraisMedicauxController extends Controller
     /**
      * Exportation PDF (Gère les 3 niveaux: Global, Entreprise, Salarie)
      */
-    public function exportPdf(Request $request)
+    private function getExportData($type, $id = null, $format = 'pdf')
     {
-        $type = $request->input('type', 'global');
         $data = [];
 
         if ($type === 'global') {
@@ -101,32 +102,35 @@ class FraisMedicauxController extends Controller
                     $q->where('IDADHERANT', $entreprise->IDADHERANT);
                 })->sum('montant');
                 
-            $entreprise->total_prise_charge = Prestation::whereHas('demande.salarie', function($q) use ($entreprise) {
-                $q->where('IDADHERANT', $entreprise->IDADHERANT);
-            })->sum(DB::raw('montant - reste_a_charge'));
+                $entreprise->total_prise_charge = Prestation::whereHas('demande.salarie', function($q) use ($entreprise) {
+                    $q->where('IDADHERANT', $entreprise->IDADHERANT);
+                })->sum(DB::raw('montant - reste_a_charge'));
             }
             $data['entreprises'] = $entreprises;
             $data['title'] = 'Rapport Global des Frais Médicaux par Adhérent';
-            $data['view_content'] = 'frais-medicaux.pdf.global';
+            $data['view_content'] = 'frais-medicaux.' . $format . '.global';
 
-        } elseif ($type === 'entreprise' && $request->has('id')) {
-            $entreprise = Entreprise::findOrFail($request->id);
-            $salaries = Salarie::where('IDADHERANT', $request->id)->get();
+        } elseif ($type === 'entreprise' && $id) {
+            $entreprise = Entreprise::findOrFail($id);
+            $salaries = Salarie::where('IDADHERANT', $id)->get();
             foreach ($salaries as $salarie) {
-                $salarie->total_frais = Prestation::whereHas('demande', function($q) use ($salarie) {
-                    $q->where('id_salarie', $salarie->IDPARTICIPANT);
-                })->sum('montant');
-                $salarie->total_prise_charge = Prestation::whereHas('demande', function($q) use ($salarie) {
-                    $q->where('id_salarie', $salarie->IDPARTICIPANT);
-                })->sum(DB::raw('montant - reste_a_charge'));
+                $salarie->prestations_list = Prestation::with(['demande', 'typePrestation', 'praticien', 'pharmacie'])
+                    ->whereHas('demande', function($q) use ($salarie) {
+                        $q->where('id_salarie', $salarie->IDPARTICIPANT);
+                    })
+                    ->orderByDesc('date_prestation')
+                    ->get();
+                    
+                $salarie->total_frais = $salarie->prestations_list->sum('montant');
+                $salarie->total_prise_charge = $salarie->prestations_list->sum(function($p) { return $p->montant - $p->reste_a_charge; });
             }
             $data['entreprise'] = $entreprise;
             $data['salaries'] = $salaries;
             $data['title'] = 'Frais Médicaux - Adhérent : ' . $entreprise->raison_sociale;
-            $data['view_content'] = 'frais-medicaux.pdf.entreprise';
+            $data['view_content'] = 'frais-medicaux.' . $format . '.entreprise';
 
-        } elseif ($type === 'salarie' && $request->has('id')) {
-            $salarie = Salarie::with('entreprise')->findOrFail($request->id);
+        } elseif ($type === 'salarie' && $id) {
+            $salarie = Salarie::with('entreprise')->findOrFail($id);
             $prestations = Prestation::with(['demande', 'typePrestation', 'praticien', 'pharmacie'])
                 ->whereHas('demande', function($q) use ($salarie) {
                     $q->where('id_salarie', $salarie->IDPARTICIPANT);
@@ -137,13 +141,34 @@ class FraisMedicauxController extends Controller
             $data['salarie'] = $salarie;
             $data['prestations'] = $prestations;
             $data['title'] = 'Relevé des Frais Médicaux - ' . $salarie->nom_complet;
-            $data['view_content'] = 'frais-medicaux.pdf.salarie';
+            $data['view_content'] = 'frais-medicaux.' . $format . '.salarie';
         }
+
+        return $data;
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $type = $request->input('type', 'global');
+        $id = $request->input('id');
+        
+        $data = $this->getExportData($type, $id, 'pdf');
 
         $pdf = Pdf::loadView('frais-medicaux.pdf.template', $data);
         $pdf->setPaper('A4', 'landscape'); // Format paysage mieux pour les tableaux
 
         $filename = 'frais_medicaux_' . $type . '_' . date('Ymd_His') . '.pdf';
         return $pdf->stream($filename);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $type = $request->input('type', 'global');
+        $id = $request->input('id');
+        
+        $data = $this->getExportData($type, $id, 'excel');
+
+        $filename = 'frais_medicaux_' . $type . '_' . date('Ymd_His') . '.xlsx';
+        return Excel::download(new FraisMedicauxExport($data), $filename);
     }
 }

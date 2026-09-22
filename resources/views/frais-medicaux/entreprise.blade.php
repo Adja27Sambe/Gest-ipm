@@ -11,9 +11,14 @@
                 <i class="fas fa-building text-primary me-2"></i>Détail Frais: {{ $entreprise->raison_sociale }}
             </h1>
         </div>
-        <a href="{{ route('frais-medicaux.export-pdf', ['type' => 'entreprise', 'id' => $entreprise->IDADHERANT]) }}" target="_blank" class="btn btn-danger shadow-sm rounded-pill px-3">
-            <i class="fas fa-file-pdf me-2"></i>Exporter PDF Adhérent
-        </a>
+        <div>
+            <a href="{{ route('frais-medicaux.export-excel', ['type' => 'entreprise', 'id' => $entreprise->IDADHERANT]) }}" class="btn btn-success shadow-sm rounded-pill px-3 me-2">
+                <i class="fas fa-file-excel me-2"></i>Exporter Excel
+            </a>
+            <a href="{{ route('frais-medicaux.export-pdf', ['type' => 'entreprise', 'id' => $entreprise->IDADHERANT]) }}" target="_blank" class="btn btn-danger shadow-sm rounded-pill px-3">
+                <i class="fas fa-file-pdf me-2"></i>Exporter PDF
+            </a>
+        </div>
     </div>
 
     <div class="row mb-4">

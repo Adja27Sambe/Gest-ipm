@@ -8,29 +8,55 @@
     </table>
 </div>
 
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Matricule</th>
-            <th>Participant (Salarié)</th>
-            <th class="text-right">Frais Total</th>
-            <th class="text-right">Prise en charge</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse($salaries->sortByDesc('total_frais') as $salarie)
-            @if($salarie->total_frais > 0)
+@forelse($salaries->sortByDesc('total_frais') as $salarie)
+    @if($salarie->total_frais > 0)
+        <div style="margin-top: 25px; padding: 10px; background-color: #e9ecef; font-weight: bold; font-size: 13px;">
+            Participant : {{ $salarie->nom_complet }} (Matricule: {{ $salarie->matricule }})
+        </div>
+        <table class="data-table" style="margin-top: 0; margin-bottom: 5px;">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>N° Demande</th>
+                    <th>Prestation</th>
+                    <th>Prestataire</th>
+                    <th class="text-right">Total</th>
+                    <th class="text-right">Prise en charge</th>
+                    <th class="text-right">Reste à charge</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($salarie->prestations_list as $prestation)
+                    <tr>
+                        <td>{{ \Carbon\Carbon::parse($prestation->date_prestation)->format('d/m/Y') }}</td>
+                        <td>{{ $prestation->demande->numero_demande ?? '-' }}</td>
+                        <td>{{ $prestation->typePrestation->libelle ?? 'Autre' }}</td>
+                        <td>
+                            @if($prestation->praticien)
+                                {{ $prestation->praticien->nom_complet }}
+                            @elseif($prestation->pharmacie)
+                                {{ $prestation->pharmacie->nom_pharmacie }}
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="text-right font-bold">{{ number_format($prestation->montant, 0, ',', ' ') }}</td>
+                        <td class="text-right text-success">{{ number_format($prestation->montant - $prestation->reste_a_charge, 0, ',', ' ') }} ({{ number_format($prestation->taux_prise_charge, 0) }}%)</td>
+                        <td class="text-right text-danger">{{ number_format($prestation->reste_a_charge, 0, ',', ' ') }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+        
+        <table style="width: 100%; font-weight: bold; margin-bottom: 20px; font-size: 11px;">
             <tr>
-                <td>{{ $salarie->matricule }}</td>
-                <td>{{ $salarie->nom_complet }}</td>
-                <td class="text-right font-bold">{{ number_format($salarie->total_frais, 0, ',', ' ') }} FCFA</td>
-                <td class="text-right text-success">{{ number_format($salarie->total_prise_charge, 0, ',', ' ') }} FCFA</td>
+                <td style="text-align: right; width: 60%;">Sous-total Salarié :</td>
+                <td class="text-right" style="width: 13.33%;">{{ number_format($salarie->total_frais, 0, ',', ' ') }}</td>
+                <td class="text-right text-success" style="width: 13.33%;">{{ number_format($salarie->total_prise_charge, 0, ',', ' ') }}</td>
+                <td class="text-right text-danger" style="width: 13.33%;">{{ number_format($salarie->total_frais - $salarie->total_prise_charge, 0, ',', ' ') }}</td>
             </tr>
-            @endif
-        @empty
-            <tr>
-                <td colspan="4" class="text-center">Aucun participant avec des frais trouvés.</td>
-            </tr>
-        @endforelse
-    </tbody>
-</table>
+        </table>
+    @endif
+@empty
+    <p class="text-center">Aucun participant avec des frais trouvés pour cet adhérent.</p>
+@endforelse

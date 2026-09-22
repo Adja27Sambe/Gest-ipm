@@ -12,9 +12,14 @@
             </h1>
             <p class="text-muted mt-1 mb-0">Entreprise : {{ $salarie->entreprise->raison_sociale ?? 'Non spécifiée' }}</p>
         </div>
-        <a href="{{ route('frais-medicaux.export-pdf', ['type' => 'salarie', 'id' => $salarie->IDPARTICIPANT]) }}" target="_blank" class="btn btn-danger shadow-sm rounded-pill px-3">
-            <i class="fas fa-file-pdf me-2"></i>Exporter PDF Salarié
-        </a>
+        <div>
+            <a href="{{ route('frais-medicaux.export-excel', ['type' => 'salarie', 'id' => $salarie->IDPARTICIPANT]) }}" class="btn btn-success shadow-sm rounded-pill px-3 me-2">
+                <i class="fas fa-file-excel me-2"></i>Exporter Excel
+            </a>
+            <a href="{{ route('frais-medicaux.export-pdf', ['type' => 'salarie', 'id' => $salarie->IDPARTICIPANT]) }}" target="_blank" class="btn btn-danger shadow-sm rounded-pill px-3">
+                <i class="fas fa-file-pdf me-2"></i>Exporter PDF
+            </a>
+        </div>
     </div>
 
     <div class="row mb-4">
