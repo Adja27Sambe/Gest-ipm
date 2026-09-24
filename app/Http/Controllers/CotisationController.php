@@ -58,19 +58,35 @@ class CotisationController extends Controller
             'date_paiement' => 'nullable|date',
         ]);
 
+        $parsed = [];
+        if (strpos($request->periode, '-') !== false) {
+            $parts = explode('-', $request->periode);
+            $parsed = ['annee' => $parts[0], 'mois' => $parts[1]];
+        } elseif (strpos($request->periode, '/') !== false) {
+            $parts = explode('/', $request->periode);
+            $parsed = ['annee' => $parts[1], 'mois' => $parts[0]];
+        } else {
+            $parsed = ['annee' => date('Y'), 'mois' => date('m')];
+        }
+
         if ($request->type_cotisation == 'entreprise') {
             $request->validate([
                 'id_entreprise' => 'required|exists:entreprise,id_entreprise',
                 'masse_salariale' => 'required|numeric|min:0',
             ]);
 
+            $montant = ($request->masse_salariale * $request->taux) / 100;
+            $montantRegle = $request->statut == 'payee' ? $montant : 0;
+
             Cotisation::create([
                 'id_entreprise' => $request->id_entreprise,
-                'periode' => $request->periode,
+                'mois' => $parsed['mois'],
+                'annee' => $parsed['annee'],
                 'masse_salariale' => $request->masse_salariale,
                 'taux' => $request->taux,
-                'statut' => $request->statut,
-                'date_paiement' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
+                'montant' => $montant,
+                'montant_regle' => $montantRegle,
+                'date_cotisation' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
             ]);
         } else {
             $request->validate([
@@ -78,13 +94,18 @@ class CotisationController extends Controller
                 'salaire_base' => 'required|numeric|min:0',
             ]);
 
+            $montant = ($request->salaire_base * $request->taux) / 100;
+            $montantRegle = $request->statut == 'payee' ? $montant : 0;
+
             Cotisation::create([
                 'id_salarie' => $request->id_salarie,
-                'periode' => $request->periode,
+                'mois' => $parsed['mois'],
+                'annee' => $parsed['annee'],
                 'salaire_base' => $request->salaire_base,
                 'taux' => $request->taux,
-                'statut' => $request->statut,
-                'date_paiement' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
+                'montant' => $montant,
+                'montant_regle' => $montantRegle,
+                'date_cotisation' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
             ]);
         }
 
@@ -117,27 +138,50 @@ class CotisationController extends Controller
             'date_paiement' => 'nullable|date',
         ]);
 
+        $parsed = [];
+        if (strpos($request->periode, '-') !== false) {
+            $parts = explode('-', $request->periode);
+            $parsed = ['annee' => $parts[0], 'mois' => $parts[1]];
+        } elseif (strpos($request->periode, '/') !== false) {
+            $parts = explode('/', $request->periode);
+            $parsed = ['annee' => $parts[1], 'mois' => $parts[0]];
+        } else {
+            $parsed = ['annee' => date('Y'), 'mois' => date('m')];
+        }
+
         if ($cotisation->id_entreprise) {
             $request->validate([
                 'masse_salariale' => 'required|numeric|min:0',
             ]);
+            $montant = ($request->masse_salariale * $request->taux) / 100;
+            $montantRegle = $request->statut == 'payee' ? $montant : 0;
             $cotisation->update([
-                'periode' => $request->periode,
+                'mois' => $parsed['mois'],
+                'annee' => $parsed['annee'],
                 'masse_salariale' => $request->masse_salariale,
                 'taux' => $request->taux,
-                'statut' => $request->statut,
-                'date_paiement' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
+                'montant' => $montant,
+                'montant_regle' => $montantRegle,
+                'date_cotisation' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
             ]);
+            
+            if ($request->statut == 'payee' && $cotisation->id_entreprise) {
+                $this->checkAndUnblockEntreprise($cotisation->id_entreprise);
+            }
         } else {
             $request->validate([
                 'salaire_base' => 'required|numeric|min:0',
             ]);
+            $montant = ($request->salaire_base * $request->taux) / 100;
+            $montantRegle = $request->statut == 'payee' ? $montant : 0;
             $cotisation->update([
-                'periode' => $request->periode,
+                'mois' => $parsed['mois'],
+                'annee' => $parsed['annee'],
                 'salaire_base' => $request->salaire_base,
                 'taux' => $request->taux,
-                'statut' => $request->statut,
-                'date_paiement' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
+                'montant' => $montant,
+                'montant_regle' => $montantRegle,
+                'date_cotisation' => $request->statut == 'payee' ? ($request->date_paiement ?? now()) : null,
             ]);
         }
 
@@ -162,10 +206,62 @@ class CotisationController extends Controller
     {
         $cotisation = Cotisation::findOrFail($id);
         $cotisation->update([
-            'statut' => 'payee',
-            'date_paiement' => now()
+            'montant_regle' => $cotisation->montant,
+            'date_cotisation' => now()
         ]);
 
+        if ($cotisation->id_entreprise) {
+            $this->checkAndUnblockEntreprise($cotisation->id_entreprise);
+        }
+
         return redirect()->back()->with('success', 'La cotisation a été marquée comme payée avec succès.');
+    }
+
+    /**
+     * Vérifie si une entreprise peut être débloquée (plus de retard) et la réactive si nécessaire.
+     */
+    private function checkAndUnblockEntreprise($idEntreprise)
+    {
+        if (!$idEntreprise) return;
+
+        $entreprise = Entreprise::find($idEntreprise);
+        if (!$entreprise || $entreprise->ADACTIF != 2) return;
+
+        $now = \Carbon\Carbon::now();
+        $isLateInCurrentMonth = $now->day > 10;
+
+        $hasUnpaidLateCotisations = Cotisation::where('ADCLEUNIK', $entreprise->id)
+            ->whereRaw('MTREGLE < MTCOTISE')
+            ->where(function($query) use ($now, $isLateInCurrentMonth) {
+                $query->where('ANNEECOTISE', '<', $now->year)
+                      ->orWhere(function($q) use ($now) {
+                          $q->where('ANNEECOTISE', $now->year)
+                            ->where('MOISCOTISE', '<', $now->month);
+                      });
+                      
+                if ($isLateInCurrentMonth) {
+                    $query->orWhere(function($q) use ($now) {
+                        $q->where('ANNEECOTISE', $now->year)
+                          ->where('MOISCOTISE', '=', $now->month);
+                    });
+                }
+            })->exists();
+
+        if (!$hasUnpaidLateCotisations) {
+            DB::transaction(function() use ($entreprise) {
+                $entreprise->ADACTIF = 1;
+                $entreprise->save();
+
+                $salaries = $entreprise->salaries()->where(function($q) {
+                    $q->where('DEPART', 0)->orWhereNull('DEPART');
+                })->get();
+
+                foreach ($salaries as $salarie) {
+                    $salarie->PARACTIF = 1;
+                    $salarie->save();
+                    \App\Models\AyantDroit::where('id_salarie', $salarie->id)->update(['statut' => 1]);
+                }
+            });
+        }
     }
 }

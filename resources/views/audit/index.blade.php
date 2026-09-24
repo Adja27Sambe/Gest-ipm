@@ -94,8 +94,13 @@
                 @forelse($historiques as $log)
                     <tr>
                         <td class="px-4 py-3">
-                            <div class="text-dark fw-medium">{{ \Carbon\Carbon::parse($log->date_heure)->format('d/m/Y') }}</div>
-                            <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ \Carbon\Carbon::parse($log->date_heure)->format('H:i:s') }}</small>
+                            <div class="text-dark fw-bold">{{ $log->date_heure ? $log->date_heure->translatedFormat('d M Y') : 'N/A' }}</div>
+                            <div class="d-flex align-items-center mt-1">
+                                <small class="text-muted me-2"><i class="bi bi-clock me-1"></i>{{ $log->date_heure ? $log->date_heure->format('H:i:s') : '' }}</small>
+                                @if($log->date_heure)
+                                    <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">{{ $log->date_heure->diffForHumans() }}</span>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-4 py-3">
                             <div class="d-flex align-items-center">

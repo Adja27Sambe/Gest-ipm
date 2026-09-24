@@ -75,6 +75,8 @@ Route::middleware('auth')->group(function () {
     Route::get('salaries/search-matricule', [App\Http\Controllers\SalarieController::class, 'searchMatricule'])->name('salaries.search-matricule');
     
     Route::middleware('can:gerer_salaries')->group(function() {
+        Route::post('salaries/import', [App\Http\Controllers\SalarieController::class, 'import'])->name('salaries.import');
+        Route::get('salaries/template', [App\Http\Controllers\SalarieController::class, 'downloadTemplate'])->name('salaries.template');
         Route::resource('salaries', App\Http\Controllers\SalarieController::class)->parameters([
             'salaries' => 'salarie'
         ]);

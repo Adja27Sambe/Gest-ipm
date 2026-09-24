@@ -16,9 +16,14 @@ class SalarieController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where('MATRICULE', 'like', "%{$search}%")
+            $query->where(function($q) use ($search) {
+                $q->where('MATRICULE', 'like', "%{$search}%")
                   ->orWhere('NOM', 'like', "%{$search}%")
-                  ->orWhere('PRENOM', 'like', "%{$search}%");
+                  ->orWhere('PRENOM', 'like', "%{$search}%")
+                  ->orWhereHas('entreprise', function($q2) use ($search) {
+                      $q2->where('ADHERANT', 'like', "%{$search}%");
+                  });
+            });
         }
 
         if ($request->filled('statut')) {
@@ -140,7 +145,10 @@ class SalarieController extends Controller
                 $q->where('MATRICULE', 'like', "%{$term}%")
                   ->orWhere('NOM', 'like', "%{$term}%")
                   ->orWhere('PRENOM', 'like', "%{$term}%")
-                  ->orWhere('NOMPREN', 'like', "%{$term}%");
+                  ->orWhere('NOMPREN', 'like', "%{$term}%")
+                  ->orWhereHas('entreprise', function($q2) use ($term) {
+                      $q2->where('ADHERANT', 'like', "%{$term}%");
+                  });
             })
             ->limit(20)
             ->get()
@@ -168,5 +176,47 @@ class SalarieController extends Controller
             });
 
         return response()->json($salaries);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'id_entreprise' => 'required',
+            'fichier_excel' => 'required|file|mimes:xlsx,xls,csv'
+        ]);
+
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import(
+                new \App\Imports\SalarieImport($request->id_entreprise), 
+                $request->file('fichier_excel')
+            );
+            return back()->with('success', 'Les participants ont été importés avec succès.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Erreur lors de l\'importation : ' . $e->getMessage());
+        }
+    }
+
+    public function downloadTemplate()
+    {
+        $headers = [
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Content-type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=gabarit_import_participants.csv',
+            'Expires'             => '0',
+            'Pragma'              => 'public'
+        ];
+
+        $columns = [
+            'matricule', 'prenom', 'nom', 'date_naissance', 'lieu_naissance', 'sexe', 
+            'telephone', 'adresse', 'situation_matrimoniale', 'salaire', 'date_embauche'
+        ];
+        
+        $callback = function() use($columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns, ';');
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

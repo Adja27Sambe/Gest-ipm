@@ -8,7 +8,7 @@
                 <i class="bi bi-arrow-left"></i> Retour au participant : {{ $carte->salarie->prenom }} {{ $carte->salarie->nom }}
             </a>
             <h1 class="h3 mb-0 text-dark font-weight-bold">Carte Participant Assuré (Recto - Verso)</h1>
-            <p class="text-muted mb-0">Téléchargement des visuels au format d'image PNG et PDF</p>
+            <p class="text-muted mb-0">Format standard CR80 (85.6 × 54 mm) — Template officiel Mbaarum Koolute</p>
         </div>
     </div>
 
@@ -28,11 +28,13 @@
 
 @push('scripts')
 <script>
-    window.addEventListener('load', function() {
-        // Un léger délai pour s'assurer que les images et les styles sont bien chargés
-        setTimeout(function() {
-            window.print();
-        }, 500);
-    });
+    // Déclenchement automatique de l'impression uniquement si demandé via l'URL (?print=1)
+    if (new URLSearchParams(window.location.search).has('print')) {
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                window.print();
+            }, 600);
+        });
+    }
 </script>
 @endpush

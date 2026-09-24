@@ -5,9 +5,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0 text-gray-800">Gestion des Participants</h1>
         @canedit
-        <a href="{{ route('salaries.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
-            <i class="bi bi-plus-lg me-2"></i>Nouveau Participant
-        </a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-success rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="bi bi-file-earmark-spreadsheet me-2"></i>Importer
+            </button>
+            <a href="{{ route('salaries.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <i class="bi bi-plus-lg me-2"></i>Nouveau Participant
+            </a>
+        </div>
         @endcanedit
     </div>
 
@@ -33,7 +38,7 @@
                 <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0 text-muted"><i class="bi bi-search"></i></span>
-                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique (nom, prénom, matricule)..." value="{{ request('search') }}" autocomplete="off">
+                        <input type="text" name="search" class="form-control bg-light border-0 ps-0 dynamic-search-input" placeholder="Recherche dynamique (nom, prénom, matricule, adhérent)..." value="{{ request('search') }}" autocomplete="off">
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -153,6 +158,48 @@
         </div>
         <div>
             {{ $salaries->links('pagination::bootstrap-5') }}
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'importation -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="importModalLabel">Importer des Participants</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('salaries.import') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body text-start">
+                    <div class="mb-4 text-center">
+                        <a href="{{ route('salaries.template') }}" class="btn btn-outline-primary btn-sm rounded-pill px-4">
+                            <i class="bi bi-download me-2"></i>Télécharger le modèle (Gabarit CSV)
+                        </a>
+                        <p class="text-muted small mt-2">Veuillez remplir ce fichier modèle et l'importer ci-dessous.</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_entreprise" class="form-label fw-bold">Adhérent (Entreprise)</label>
+                        <select name="id_entreprise" id="id_entreprise" class="form-select bg-light border-0" required>
+                            <option value="">Sélectionnez une entreprise...</option>
+                            @foreach(\App\Models\Entreprise::orderBy('ADHERANT')->get() as $ent)
+                                <option value="{{ $ent->id }}">{{ $ent->ADHERANT ?? $ent->raison_sociale }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="fichier_excel" class="form-label fw-bold">Fichier (Excel / CSV)</label>
+                        <input class="form-control bg-light border-0" type="file" id="fichier_excel" name="fichier_excel" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4"><i class="bi bi-upload me-2"></i>Lancer l'importation</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

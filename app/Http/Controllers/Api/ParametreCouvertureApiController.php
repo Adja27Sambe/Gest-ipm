@@ -26,10 +26,19 @@ class ParametreCouvertureApiController extends Controller
     {
         $validated = $request->validate([
             'id_type_prestation' => 'required|exists:type_prestation,id_type_prestation|unique:parametre_couverture,id_type_prestation',
-            'taux_prise_charge' => 'required|numeric|min:0|max:100',
+            'taux_prise_charge' => 'nullable|numeric|min:0|max:100',
             'plafond_annuel' => 'nullable|numeric|min:0',
             'plafond_par_acte' => 'nullable|numeric|min:0',
             'ticket_moderateur' => 'nullable|numeric|min:0',
+            
+            'type_calcul' => 'nullable|string|in:POURCENTAGE,PLAFOND,FORFAIT,TARIF_JOURNALIER,100_PERCENT_PARTICIPANT,EXCLUSION',
+            'montant_plafond' => 'nullable|numeric|min:0',
+            'montant_forfait' => 'nullable|numeric|min:0',
+            'tarif_journalier' => 'nullable|numeric|min:0',
+            'taux_participant' => 'nullable|numeric|min:0|max:100',
+            'conditions_particulieres' => 'nullable|string',
+            'est_exclusion' => 'nullable|boolean',
+            'motif_exclusion' => 'nullable|string',
         ]);
 
         $parametre = ParametreCouverture::create($validated);
@@ -55,11 +64,25 @@ class ParametreCouvertureApiController extends Controller
     public function update(Request $request, ParametreCouverture $parametres_couverture)
     {
         $validated = $request->validate([
-            'taux_prise_charge' => 'required|numeric|min:0|max:100',
+            'taux_prise_charge' => 'nullable|numeric|min:0|max:100',
             'plafond_annuel' => 'nullable|numeric|min:0',
             'plafond_par_acte' => 'nullable|numeric|min:0',
             'ticket_moderateur' => 'nullable|numeric|min:0',
+            
+            'type_calcul' => 'nullable|string|in:POURCENTAGE,PLAFOND,FORFAIT,TARIF_JOURNALIER,100_PERCENT_PARTICIPANT,EXCLUSION',
+            'montant_plafond' => 'nullable|numeric|min:0',
+            'montant_forfait' => 'nullable|numeric|min:0',
+            'tarif_journalier' => 'nullable|numeric|min:0',
+            'taux_participant' => 'nullable|numeric|min:0|max:100',
+            'conditions_particulieres' => 'nullable|string',
+            'est_exclusion' => 'nullable|boolean',
+            'motif_exclusion' => 'nullable|string',
+            'motif_modification' => 'required|string|min:5', // Requis pour l'historique
         ]);
+
+        // On retire le motif_modification avant la mise à jour car il n'existe pas en BDD
+        // Il est utilisé par le trait Auditable via Request::input()
+        unset($validated['motif_modification']);
 
         $parametres_couverture->update($validated);
 
@@ -108,14 +131,44 @@ class ParametreCouvertureApiController extends Controller
         }
 
         $montant = $request->montant;
-        $tauxApplique = (float) $parametre->taux_prise_charge;
-
-        // Calcul théorique
-        $montantPrisEnCharge = $montant * ($tauxApplique / 100);
-
-        // Application du plafond par acte si défini
-        if ($parametre->plafond_par_acte !== null && $montantPrisEnCharge > $parametre->plafond_par_acte) {
-            $montantPrisEnCharge = (float) $parametre->plafond_par_acte;
+        $typeCalcul = $parametre->type_calcul ?? 'POURCENTAGE';
+        
+        $montantPrisEnCharge = 0;
+        
+        if ($parametre->est_exclusion) {
+            $montantPrisEnCharge = 0;
+        } else {
+            switch ($typeCalcul) {
+                case 'TARIF_JOURNALIER': 
+                    $tarifPlafond = $parametre->tarif_journalier ?? 20000;
+                    $montantPrisEnCharge = ($montant <= $tarifPlafond) ? $montant : $tarifPlafond;
+                    break;
+                    
+                case 'PLAFOND':
+                    $plafond = $parametre->montant_plafond ?? 30000;
+                    $montantPrisEnCharge = ($montant <= $plafond) ? $montant : $plafond;
+                    break;
+                    
+                case 'FORFAIT':
+                    $forfait = $parametre->montant_forfait ?? 50000;
+                    $montantPrisEnCharge = ($montant <= $forfait) ? $montant : $forfait;
+                    break;
+                    
+                case '100_PERCENT_PARTICIPANT':
+                case 'EXCLUSION':
+                    $montantPrisEnCharge = 0;
+                    break;
+                    
+                case 'POURCENTAGE':
+                default:
+                    $tauxApplique = (float) $parametre->taux_prise_charge;
+                    $montantPrisEnCharge = $montant * ($tauxApplique / 100);
+                    // Application de l'ancien plafond par acte si défini (compatibilité)
+                    if ($parametre->plafond_par_acte !== null && $montantPrisEnCharge > $parametre->plafond_par_acte) {
+                        $montantPrisEnCharge = (float) $parametre->plafond_par_acte;
+                    }
+                    break;
+            }
         }
 
         $resteACharge = $montant - $montantPrisEnCharge;
@@ -123,11 +176,13 @@ class ParametreCouvertureApiController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'taux_applique' => $tauxApplique,
+                'type_calcul' => $typeCalcul,
+                'taux_applique' => $parametre->taux_prise_charge,
                 'montant_saisi' => $montant,
                 'montant_pris_en_charge' => round($montantPrisEnCharge, 2),
                 'reste_a_charge' => round($resteACharge, 2),
                 'plafond_par_acte' => $parametre->plafond_par_acte,
+                'montant_plafond' => $parametre->montant_plafond,
                 'plafond_annuel' => $parametre->plafond_annuel,
                 'note' => 'Le plafond annuel restant n\'est pas calculé ici car il dépend de l\'historique du bénéficiaire.',
             ]

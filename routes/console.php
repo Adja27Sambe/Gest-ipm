@@ -12,4 +12,5 @@ Schedule::command('conventions:alerter-expiration')->dailyAt('08:00');
 
 // Gestion des cotisations
 Schedule::command('cotisations:generer-mensuelles')->monthlyOn(1, '01:00');
-Schedule::job(new \App\Jobs\RelancerCotisationsImpayees)->dailyAt('02:00');
+Schedule::command('entreprises:bloquer-impayes')->dailyAt('02:00');
+Schedule::job(new \App\Jobs\RelancerCotisationsImpayees)->dailyAt('03:00');

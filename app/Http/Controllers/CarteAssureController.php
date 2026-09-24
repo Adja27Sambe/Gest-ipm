@@ -59,8 +59,8 @@ class CarteAssureController extends Controller
         
         $pdf = Pdf::loadView('pdf.carte_assure', compact('carte'));
         
-        // Format standard carte bancaire / badge (85mm x 54mm = 240.95pt x 153.07pt)
-        $pdf->setPaper([0, 0, 240.95, 153.07], 'landscape');
+        // Format standard ISO/IEC 7810 ID-1 / CR80 (85.6mm x 53.98mm = 242.65pt x 153.01pt)
+        $pdf->setPaper([0, 0, 242.65, 153.01], 'landscape');
 
         return $pdf->download('carte_assure_' . $carte->numero_carte . '.pdf');
     }

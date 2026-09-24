@@ -10,6 +10,10 @@ class HistoriqueMouvement extends Model
     protected $primaryKey = 'id_historique';
     public $timestamps = false; // Le champ date_heure est géré manuellement ou par défaut SQL
     protected $guarded = [];
+    
+    protected $casts = [
+        'date_heure' => 'datetime',
+    ];
 
     public function utilisateur()
     {

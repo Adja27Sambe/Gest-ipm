@@ -30,14 +30,6 @@ class PlafondService
             ]);
         }
 
-        // Vérification plafond par acte
-        if ($parametre->plafond_par_acte !== null && $montant > $parametre->plafond_par_acte) {
-            $depassement = $montant - $parametre->plafond_par_acte;
-            throw new PlafondDepasseException(
-                "Le montant de l'acte (" . number_format($montant, 0, ',', ' ') . " FCFA) dépasse le plafond autorisé par acte (" . number_format($parametre->plafond_par_acte, 0, ',', ' ') . " FCFA).",
-                $depassement
-            );
-        }
 
         // 2. Vérification du plafond annuel
         if ($parametre->plafond_annuel !== null) {
