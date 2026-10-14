@@ -73,35 +73,24 @@ class EntrepriseController extends Controller
             return response()->json(['matricule' => '']);
         }
         
-        // Supprimer le préfixe ADH ou ADH- s'il existe
-        $codeAdherent = preg_replace('/^ADH-?/i', '', $entreprise->code_adherent);
+        // Chercher le plus grand numéro parmi tous les matricules (en ignorant les lettres)
+        // Retirer les préfixes pour obtenir le code propre (ex: 004)
+        $codeAdherent = preg_replace('/^(ADH|ENT|MAT)-?/i', '', $entreprise->code_adherent);
+        $originalCode = $entreprise->code_adherent;
         
-        $lastSalarie = \App\Models\Salarie::where('IDADHERANT', $entreprise->id_entreprise)
+        $maxNumber = \App\Models\Salarie::where('IDADHERANT', $entreprise->id_entreprise)
             ->whereNotNull('MATRICULE')
-            ->where('MATRICULE', 'like', $codeAdherent . '%')
-            ->orderByRaw('LENGTH(MATRICULE) DESC')
-            ->orderBy('MATRICULE', 'desc')
-            ->first();
-
-        if ($lastSalarie && $lastSalarie->matricule !== $codeAdherent) {
-            $lastMatricule = $lastSalarie->matricule;
-            $numberPart = substr($lastMatricule, strlen($codeAdherent));
-            
-            if (is_numeric($numberPart)) {
-                $nextNumber = intval($numberPart) + 1;
-                $padLength = strlen($numberPart);
-                if ($padLength > 0 && $numberPart[0] === '0') {
-                    $matricule = $codeAdherent . str_pad($nextNumber, $padLength, '0', STR_PAD_LEFT);
-                } else {
-                    $matricule = $codeAdherent . $nextNumber;
-                }
-            } else {
-                $count = \App\Models\Salarie::where('IDADHERANT', $entreprise->id_entreprise)->count();
-                $matricule = $codeAdherent . ($count + 1);
-            }
-        } else {
-            $matricule = $codeAdherent . '1';
-        }
+            ->pluck('MATRICULE')
+            ->map(function ($m) use ($codeAdherent, $originalCode) {
+                // Enlever le code entreprise du début s'il est présent (l'ancien ou le nouveau format)
+                $compteurStr = preg_replace('/^(' . preg_quote($originalCode, '/') . '|' . preg_quote($codeAdherent, '/') . ')/i', '', $m);
+                // Extraire uniquement le numéro de séquence
+                return intval(preg_replace('/[^0-9]/', '', $compteurStr));
+            })
+            ->max() ?? 0;
+        
+        // Nouveau matricule : code entreprise (sans ENT) + compteur sur 4 chiffres
+        $matricule = $codeAdherent . str_pad($maxNumber + 1, 4, '0', STR_PAD_LEFT);
 
         return response()->json(['matricule' => $matricule]);
     }

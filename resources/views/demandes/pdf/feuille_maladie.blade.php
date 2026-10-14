@@ -37,10 +37,6 @@
                 <th>Praticien :</th>
                 <td>{{ $demande->prestataire->nom ?? 'N/A' }}</td>
             </tr>
-            <tr>
-                <th>Diagnostic :</th>
-                <td>{{ $feuilleMaladie->diagnostic ?? 'N/A' }}</td>
-            </tr>
         </table>
     </div>
 

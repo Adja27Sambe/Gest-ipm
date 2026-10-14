@@ -22,41 +22,24 @@ class SalarieObserver
             $entrepriseId = $salarie->id_entreprise ?? $salarie->IDADHERANT;
             $entreprise = $entrepriseId ? \App\Models\Entreprise::find($entrepriseId) : null;
             
-            $prefix = 'MAT-';
             if ($entreprise && !empty($entreprise->code_adherent)) {
-                $stripped = preg_replace('/^(ADH|ENT)-?/i', '', $entreprise->code_adherent);
-                $prefix = !empty($stripped) ? $stripped : $entreprise->code_adherent;
-            }
-
-            // Chercher le dernier salarié pour cette entreprise
-            $query = \App\Models\Salarie::query();
-            if ($entrepriseId) {
-                $query->where('IDADHERANT', $entrepriseId);
-            }
-            $lastSalarie = $query->whereNotNull('MATRICULE')
-                ->where('MATRICULE', 'like', $prefix . '%')
-                ->orderByRaw('LENGTH(MATRICULE) DESC')
-                ->orderBy('MATRICULE', 'desc')
-                ->first();
-
-            if ($lastSalarie && $lastSalarie->matricule !== $prefix) {
-                $lastMatricule = $lastSalarie->matricule;
-                $numberPart = substr($lastMatricule, strlen($prefix));
+                $codeAdherent = preg_replace('/^(ADH|ENT|MAT)-?/i', '', $entreprise->code_adherent);
+                $originalCode = $entreprise->code_adherent;
                 
-                if (is_numeric($numberPart)) {
-                    $nextNumber = intval($numberPart) + 1;
-                    $padLength = strlen($numberPart);
-                    if ($padLength > 0 && $numberPart[0] === '0') {
-                        $salarie->matricule = $prefix . str_pad($nextNumber, $padLength, '0', STR_PAD_LEFT);
-                    } else {
-                        $salarie->matricule = $prefix . $nextNumber;
-                    }
-                } else {
-                    $count = $entrepriseId ? \App\Models\Salarie::where('IDADHERANT', $entrepriseId)->count() : \App\Models\Salarie::count();
-                    $salarie->matricule = $prefix . ($count + 1);
-                }
+                $maxNumber = \App\Models\Salarie::where('IDADHERANT', $entrepriseId)
+                    ->whereNotNull('MATRICULE')
+                    ->pluck('MATRICULE')
+                    ->map(function ($m) use ($codeAdherent, $originalCode) {
+                        $compteurStr = preg_replace('/^(' . preg_quote($originalCode, '/') . '|' . preg_quote($codeAdherent, '/') . ')/i', '', $m);
+                        return intval(preg_replace('/[^0-9]/', '', $compteurStr));
+                    })
+                    ->max() ?? 0;
+                    
+                $salarie->matricule = $codeAdherent . str_pad($maxNumber + 1, 4, '0', STR_PAD_LEFT);
             } else {
-                $salarie->matricule = $prefix . '0001';
+                $statement = \Illuminate\Support\Facades\DB::select("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'PARTICIPANT'");
+                $nextId = $statement[0]->AUTO_INCREMENT ?? (\App\Models\Salarie::max('IDPARTICIPANT') + 1);
+                $salarie->matricule = str_pad($nextId, 4, '0', STR_PAD_LEFT);
             }
         }
     }

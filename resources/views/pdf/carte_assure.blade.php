@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Carte d'Assuré - {{ $carte->numero_carte }}</title>
+    <title>Carte du participant - {{ $carte->numero_carte }}</title>
     <style>
         @page {
             margin: 0;
@@ -50,143 +50,142 @@
         }
         .header {
             position: absolute;
-            top: 14pt;
-            left: 56pt;
+            top: 8pt;
+            left: 63pt;
             right: 6pt;
-            height: 23pt;
-        }
-        .header-logo {
-    
-            height: 18pt;
-            width: auto;
-            vertical-align: middle;
-        }
-        .header-text {
-            display: inline-block;
-            vertical-align: middle;
-            margin-left: 5pt;
+            text-align: right;
         }
         .header-title {
-            font-size: 14px;
+            font-size: 10pt;
             font-weight: bold;
             color: #045689;
             text-transform: uppercase;
-            letter-spacing: 0.2pt;
-            line-height: 1.15;
+            letter-spacing: 0.3pt;
+            line-height: 1.25;
         }
         .header-sub {
-            font-size: 12px;
+            font-size: 8pt;
             color: #1ea3e4;
             font-weight: bold;
-            letter-spacing: 0.1pt;
-        }
-        .header-line {
-            position: absolute;
-            top: 28pt;
-            left: 12pt;
-            right: 8pt;
-            height: 0.8pt;
-            background-color: #045689;
-            opacity: 0.25;
+            letter-spacing: 0.3pt;
+            line-height: 1.2;
+            margin-top: 1.5pt;
         }
         .photo-box {
             position: absolute;
-            top: 31pt;
+            top: 30pt;
             left: 8pt;
-            width: 50pt;
-            height: 55pt;
-            border: 1.2pt solid #045689;
+            width: 52pt;
+            height: 58pt;
+            border: 1pt solid #045689;
             border-radius: 3pt;
             overflow: hidden;
             background: #f0f4f8;
             text-align: center;
         }
         .photo-img {
-            width: 50pt;
-            height: 55pt;
+            width: 52pt;
+            height: 58pt;
             object-fit: cover;
         }
         .qr-box {
             position: absolute;
-            top: 90pt;
+            top: 92pt;
             left: 8pt;
-            width: 50pt;
-            height: 50pt;
+            width: 52pt;
+            height: 52pt;
             background: #ffffff;
             border: 0.8pt solid #d0d7de;
             border-radius: 2pt;
-            padding: 1.5pt;
+            padding: 2pt;
             text-align: center;
             box-sizing: border-box;
         }
         .qr-img {
-            width: 47pt;
-            height: 47pt;
+            width: 48pt;
+            height: 48pt;
             display: block;
             margin: 0 auto;
         }
         .details {
             position: absolute;
             top: 30pt;
-            left: 63pt;
+            left: 65pt;
             right: 6pt;
         }
         .matricule-badge {
             background-color: #076B27;
             color: #ffffff;
-            font-size: 14px;
+            font-size: 9.5pt;
             font-weight: bold;
-            padding: 2pt 8pt;
-            border-radius: 3pt;
+            padding: 1.5pt 6pt;
+            border-radius: 2.5pt;
             display: inline-block;
             letter-spacing: 0.3pt;
         }
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 2pt;
+            margin-top: 3pt;
         }
         .info-table td {
-            padding: 1pt 0;
-            font-size: 14px;
+            padding: 1.2pt 0;
+            font-size: 9.5pt;
             vertical-align: middle;
         }
         .info-label {
-            color: #555555;
-            width: 44pt;
+            color: #64748b;
+            width: 50pt;
             font-weight: 500;
-            font-size: 14px;
+            font-size: 9pt;
         }
         .info-val {
-            color: #111111;
+            color: #1a2333;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 9.5pt;
         }
         .info-nom {
-            font-size: 15.5px;
+            font-size: 10.5pt;
             font-weight: bold;
             color: #045689;
             text-transform: uppercase;
         }
+        .info-societe {
+            font-weight: bold;
+            color: #045689;
+            font-size: 9pt;
+        }
         .card-footer {
             position: absolute;
             bottom: 3pt;
-            left: 63pt;
-            right: 6pt;
+            left: 8pt;
+            right: 8pt;
             border-top: 0.5pt solid #d0d7de;
-            padding-top: 1.5pt;
-            font-size: 10.5px;
-            color: #555555;
+            padding-top: 2pt;
+            font-size: 8.5pt;
+            color: #64748b;
+            text-align: left;
+        }
+        .verso-header {
+            position: absolute;
+            top: 8pt;
+            left: 10pt;
+            right: 10pt;
+            text-align: right;
+            font-size: 8pt;
+            color: #475569;
+            line-height: 1.35;
+            font-weight: 500;
         }
         .verso-footer {
             position: absolute;
-            bottom: 2pt;
-            left: 8pt;
-            right: 8pt;
-            text-align: center;
-            font-size: 11px;
-            color: #045689;
+            bottom: 4pt;
+            left: 10pt;
+            right: 10pt;
+            text-align: left;
+            font-size: 8.5pt;
             font-weight: bold;
+            color: #045689;
             letter-spacing: 0.3pt;
         }
     </style>
@@ -233,16 +232,9 @@
         @endif
         <div class="card-content">
             <div class="header">
-                @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" class="header-logo">
-                @endif
-                <div class="header-text">
-                    <div class="header-title">INSTITUT DE PRÉVOYANCE MALADIE</div>
-                    <div class="header-sub">INTER-ENTREPRISES</div>
-                    <div class="header-sub">CARTE DE PARTICIPANT ASSURÉ</div>
-                </div>
+                <div class="header-title">Institution de Prévoyance Maladie (IPM)<br>Mbaarum Koolute</div>
+                <div class="header-sub">INTER-ENTREPRISES &bull; CARTE PARTICIPANT</div>
             </div>
-            <div class="header-line"></div>
 
             <div class="photo-box">
                 @if($photoBase64)
@@ -265,7 +257,7 @@
                     </tr>
                     <tr>
                         <td class="info-label">Prénom :</td>
-                        <td class="info-val" style="font-size: 8.5pt;">{{ $prenom }}</td>
+                        <td class="info-val">{{ $prenom }}</td>
                     </tr>
                     <tr>
                         <td class="info-label">Né(e) le :</td>
@@ -273,7 +265,7 @@
                     </tr>
                     <tr>
                         <td class="info-label">Société :</td>
-                        <td class="info-val" style="font-weight: bold; color: #045689; font-size: 7.8pt;">{{ $entrepriseNom }}</td>
+                        <td class="info-val info-societe">{{ $entrepriseNom }}</td>
                     </tr>
                     @if($telephone)
                     <tr>
@@ -285,7 +277,7 @@
             </div>
 
             <div class="card-footer">
-                <span style="float: right;">Émise le : <strong>{{ $dateEmission }}</strong></span>
+                <span>Délivrée le : <strong style="color: #1a2333;">{{ $dateEmission }}</strong></span>
             </div>
         </div>
     </div>
@@ -296,8 +288,13 @@
             <img src="{{ $versoBgBase64 }}" class="bg-img">
         @endif
         <div class="card-content">
+            <div class="verso-header">
+                <div>Cité de l’Émergence, Imm. 7, Appt. N°4, Dakar <br>&bull; Tél : +221 33 822 37 34</div>
+                <div style="margin-top: 1pt;">Horaires : Lun–Ven, 08h00–17h00</div>
+            </div>
+
             <div class="verso-footer">
-            Présentez cette carte aux prestataires agréés &bull;
+                Présentez cette carte aux prestataires agréés &bull;
             </div>
         </div>
     </div>

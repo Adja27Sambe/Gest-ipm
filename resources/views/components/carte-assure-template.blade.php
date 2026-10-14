@@ -77,11 +77,12 @@
 
 /* ─── Hover et transitions en mode écran ─── */
 .carte-container-card {
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s ease;
+    box-shadow: 0 10px 30px rgba(4, 86, 137, 0.12);
 }
 .carte-container-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(4, 86, 137, 0.18) !important;
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(4, 86, 137, 0.22) !important;
 }
 .carte-qr-box svg {
     width: 100% !important;
@@ -89,6 +90,101 @@
     max-width: 100% !important;
     max-height: 100% !important;
     display: block !important;
+}
+
+/* ─── Responsive Scaling ─── */
+.responsive-card-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+@media screen and (max-width: 600px) {
+    .responsive-card-wrapper {
+        transform: scale(0.75);
+        margin-top: -45px;
+        margin-bottom: -45px;
+    }
+}
+@media screen and (max-width: 480px) {
+    .responsive-card-wrapper {
+        transform: scale(0.65);
+        margin-top: -65px;
+        margin-bottom: -65px;
+    }
+}
+@media screen and (max-width: 380px) {
+    .responsive-card-wrapper {
+        transform: scale(0.55);
+        margin-top: -85px;
+        margin-bottom: -85px;
+    }
+}
+
+/* ─── Flip Card Styles ─── */
+.flip-card-container {
+    perspective: 1000px;
+    width: 536px;
+    height: 380px; /* height including labels */
+    max-width: 100%;
+}
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+}
+.flip-card-inner.is-flipped {
+    transform: rotateY(180deg);
+}
+.flip-card-front, .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.flip-card-front {
+    z-index: 2;
+    transform: rotateY(0deg);
+}
+.flip-card-back {
+    transform: rotateY(180deg);
+    z-index: 1;
+}
+@media print {
+    .flip-card-container {
+        height: auto !important;
+        perspective: none !important;
+    }
+    .flip-card-inner {
+        transform: none !important;
+        transition: none !important;
+        transform-style: flat !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 20px !important;
+        justify-content: center !important;
+    }
+    .flip-card-front, .flip-card-back {
+        position: relative !important;
+        transform: none !important;
+        backface-visibility: visible !important;
+        display: block !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        margin-bottom: 20px !important;
+    }
+    .flip-card-inner.is-flipped {
+        transform: none !important;
+    }
 }
 </style>
 
@@ -123,13 +219,29 @@
         </button>
     </div>
 
-    <div class="d-flex flex-column align-items-center gap-4 w-100">
+    <div class="d-flex flex-column align-items-center gap-4 w-100 mt-2">
 
-        {{-- ══════════════════════════════════════════════════
-             RECTO (Dimensions standard CR80 : 85.6 × 53.98 mm)
-             Rapport exact 1.5858 → 536 × 338 px
-        ══════════════════════════════════════════════════ --}}
-        <div class="carte-card-wrapper w-100 d-flex flex-column align-items-center">
+        @if(!$onlyRecto)
+        <div class="d-flex justify-content-center mb-1 d-print-none">
+            <button type="button" class="btn btn-primary rounded-pill px-4 shadow py-2 fw-semibold d-inline-flex align-items-center gap-2" 
+                    style="transition: all 0.3s; background: linear-gradient(135deg, #045689, #1ea3e4); border: none;" 
+                    onmouseover="this.style.transform='scale(1.05)'" 
+                    onmouseout="this.style.transform='scale(1)'" 
+                    onclick="document.getElementById('flip-card-inner-{{ $rid }}').classList.toggle('is-flipped')">
+                <i class="bi bi-arrow-repeat fs-5"></i> <span>Retourner la carte</span>
+            </button>
+        </div>
+        @endif
+
+        <div class="responsive-card-wrapper">
+            <div class="flip-card-container">
+                <div id="flip-card-inner-{{ $rid }}" class="flip-card-inner">
+
+                {{-- ══════════════════════════════════════════════════
+                     RECTO (Dimensions standard CR80 : 85.6 × 53.98 mm)
+                     Rapport exact 1.5858 → 536 × 338 px
+                ══════════════════════════════════════════════════ --}}
+                <div class="flip-card-front carte-card-wrapper w-100 d-flex flex-column align-items-center">
             <div class="carte-card-label d-flex justify-content-between align-items-center mb-2 px-1" style="width: 536px; max-width: 100%;">
                 <span class="badge bg-primary bg-opacity-10 text-primary fw-bold px-2 py-1">
                     <i class="bi bi-credit-card-2-front me-1"></i> RECTO — CARTE PARTICIPANT
@@ -162,20 +274,13 @@
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-sizing: border-box; padding: 10px 14px; display: flex; flex-direction: column; justify-content: space-between;">
                     
                     {{-- ── En-tête de la carte ── --}}
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-left: 95px; padding-bottom: 6px; border-bottom: 1px solid rgba(4, 86, 137, 0.20);">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <img src="{{ asset('images/logo_clean.png') }}" alt="Logo IPM"
-                                 style="height: 38px; width: auto; max-width: 130px; object-fit: contain;">
-                            <div style="line-height: 1.2;">
-                                <div style="font-size: 14px; font-weight: 800; color: #045689; text-transform: uppercase; letter-spacing: 0.3px;">
-                                    Institut de Prévoyance Maladie
-                                </div>
-                                <div style="font-size: 11px; font-weight: 700; color: #045689; text-transform: uppercase; letter-spacing: 0.2px;">
-                                    INTER-ENTREPRISES
-                                </div>
-                                <div style="font-size: 12px; font-weight: 700; color: #1ea3e4; letter-spacing: 0.2px;">
-                                    Carte de Participant Assuré
-                                </div>
+                    <div style="display: flex; align-items: center; justify-content: flex-end; margin-left: 120px; padding-bottom: 2px;">
+                        <div style="line-height: 1.25; text-align: right;">
+                            <div style="font-size: 14px; font-weight: 800; color: #045689; text-transform: uppercase; letter-spacing: 0.2px;">
+                                Institution de Prévoyance Maladie (IPM)<br>Mbaarum Koolute
+                            </div>
+                            <div style="font-size: 11.5px; font-weight: 700; color: #1ea3e4; letter-spacing: 0.2px;">
+                                INTER-ENTREPRISES &bull; CARTE PARTICIPANT
                             </div>
                         </div>
                     </div>
@@ -237,55 +342,54 @@
                             <div>
                                 {{-- Badge Matricule --}}
                                 <div style="
-                                    display: inline-flex;
-                                    align-items: center;
-                                    gap: 6px;
+                                    display: inline-block;
                                     background-color: #076B27;
                                     color: #ffffff;
-                                    font-size: 14px;
+                                    font-size: 18px;
                                     font-weight: 800;
-                                    padding: 4px 14px;
+                                    padding: 6px 16px;
                                     border-radius: 6px;
                                     letter-spacing: 0.5px;
                                     box-shadow: 0 2px 6px rgba(7, 107, 39, 0.28);
-                                    margin-bottom: 6px;
+                                    margin-bottom: 8px;
+                                    white-space: nowrap;
                                 ">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="flex-shrink: 0;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white" style="vertical-align: middle; margin-right: 6px;">
                                         <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
                                     </svg>
-                                    <span>MATRICULE : {{ $matricule }}</span>
+                                    <span style="vertical-align: middle;">MATRICULE : {{ $matricule }}</span>
                                 </div>
 
-                                {{-- Tableau / Lignes d'informations calibrées à 14px --}}
-                                <table style="border-collapse: collapse; width: 100%; font-size: 14px; color: #1a2333;">
+                                {{-- Tableau / Lignes d'informations calibrées --}}
+                                <table style="border-collapse: collapse; width: 100%; font-size: 18px; color: #1a2333;">
                                     <tr>
-                                        <td style="padding: 2.5px 0; color: #5a6880; font-weight: 500; width: 80px; font-size: 14px;">Nom :</td>
-                                        <td style="padding: 2.5px 0; font-weight: 800; font-size: 16px; color: #045689; text-transform: uppercase;">
+                                        <td style="padding: 3px 0; color: #5a6880; font-weight: 500; width: 90px; font-size: 17px;">Nom :</td>
+                                        <td style="padding: 3px 0; font-weight: 800; font-size: 20px; color: #045689; text-transform: uppercase;">
                                             {{ $nom }}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 2.5px 0; color: #5a6880; font-weight: 500; font-size: 14px;">Prénom :</td>
-                                        <td style="padding: 2.5px 0; font-weight: 700; font-size: 14px; color: #1a2333;">
+                                        <td style="padding: 3px 0; color: #5a6880; font-weight: 500; font-size: 17px;">Prénom :</td>
+                                        <td style="padding: 3px 0; font-weight: 700; font-size: 18px; color: #1a2333;">
                                             {{ $prenom }}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 2.5px 0; color: #5a6880; font-weight: 500; font-size: 14px;">Né(e) le :</td>
-                                        <td style="padding: 2.5px 0; font-weight: 600; font-size: 14px; color: #1a2333;">
+                                        <td style="padding: 3px 0; color: #5a6880; font-weight: 500; font-size: 17px;">Né(e) le :</td>
+                                        <td style="padding: 3px 0; font-weight: 600; font-size: 18px; color: #1a2333;">
                                             {{ $dateNaissance }}
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 2.5px 0; color: #5a6880; font-weight: 500; font-size: 14px;">Société :</td>
-                                        <td style="padding: 2.5px 0; font-weight: 700; color: #045689; font-size: 14px;">
+                                        <td style="padding: 3px 0; color: #5a6880; font-weight: 500; font-size: 17px;">Société :</td>
+                                        <td style="padding: 3px 0; font-weight: 700; color: #045689; font-size: 17px;">
                                             {{ $entrepriseNom }}
                                         </td>
                                     </tr>
                                     @if($telephone)
                                     <tr>
-                                        <td style="padding: 2.5px 0; color: #5a6880; font-weight: 500; font-size: 14px;">Téléphone :</td>
-                                        <td style="padding: 2.5px 0; font-weight: 600; font-size: 14px; color: #333333;">
+                                        <td style="padding: 3px 0; color: #5a6880; font-weight: 500; font-size: 17px;">Téléphone :</td>
+                                        <td style="padding: 3px 0; font-weight: 600; font-size: 18px; color: #333333;">
                                             {{ $telephone }}
                                         </td>
                                     </tr>
@@ -297,14 +401,14 @@
                             <div style="
                                 display: flex;
                                 align-items: center;
-                                justify-content: space-between;
-                                padding-top: 5px;
-                                margin-top: 3px;
+                                justify-content: flex-start;
+                                text-align: left;
+                                padding-top: 6px;
+                                margin-top: 4px;
                                 border-top: 1px dashed #c8d6e8;
-                                font-size: 11.5px;
+                                font-size: 14px;
                                 color: #64748b;
                             ">
-                                <span>N° Carte : <strong style="color: #045689; font-weight: 800;">{{ $numeroCarte }}</strong></span>
                                 <span>Délivrée le : <strong style="color: #1a2333;">{{ $dateEmission }}</strong></span>
                             </div>
                         </div>
@@ -312,14 +416,15 @@
                     </div>
                 </div>
 
+                </div>
             </div>
-        </div>
 
-        {{-- ══════════════════════════════════════════════════
-             VERSO (Template Officiel Mbaarum Koolute)
-             Format exact 85.6 × 53.98 mm
-        ══════════════════════════════════════════════════ --}}
-        <div class="carte-card-wrapper w-100 d-flex flex-column align-items-center {{ $onlyRecto ? 'd-none' : '' }}" id="verso-wrapper-{{ $rid }}">
+                {{-- ══════════════════════════════════════════════════
+                     VERSO (Template Officiel Mbaarum Koolute)
+                     Format exact 85.6 × 53.98 mm
+                ══════════════════════════════════════════════════ --}}
+                @if(!$onlyRecto)
+                <div class="flip-card-back carte-card-wrapper w-100 d-flex flex-column align-items-center" id="verso-wrapper-{{ $rid }}">
             <div class="carte-card-label d-flex justify-content-between align-items-center mb-2 px-1" style="width: 536px; max-width: 100%;">
                 <span class="badge bg-success bg-opacity-10 text-success fw-bold px-2 py-1">
                     <i class="bi bi-credit-card-2-back me-1"></i> VERSO — FACE ARRIÈRE
@@ -348,13 +453,29 @@
                     print-color-adjust: exact;
                 ">
 
+                {{-- En-tête du verso avec coordonnées centrées sur 2 lignes --}}
+                <div style="
+                    position: absolute;
+                    top: 10px;
+                    left: 20px;
+                    right: 20px;
+                    text-align: right;
+                    font-size: 10.5px;
+                    color: #475569;
+                    font-weight: 500;
+                    line-height: 1.35;
+                ">
+                    <div>Cité de l’Émergence, Imm. 7, Appt. N°4, Dakar <br>&bull; Tél : +221 33 822 37 34</div>
+                    <div style="margin-top: 2px;">Horaires : Lun–Ven, 08h00–17h00</div>
+                </div>
+
                 {{-- Texte discret au verso en pied de carte --}}
                 <div style="
                     position: absolute;
                     bottom: 8px;
                     left: 20px;
                     right: 20px;
-                    text-align: center;
+                    text-align: left;
                     font-size: 11px;
                     color: #045689;
                     font-weight: 700;
@@ -363,6 +484,11 @@
                     Présentez cette carte aux prestataires agréés &bull;
                 </div>
 
+            </div>
+        </div>
+        @endif
+
+                </div>
             </div>
         </div>
 
@@ -386,10 +512,45 @@ function downloadCartePNG(containerId, filename) {
     const wrapper = el.closest('.carte-card-wrapper');
     let wasHidden = wrapper && wrapper.classList.contains('d-none');
 
+    // Handle flip card 3D transforms for html2canvas
+    const flipInner = el.closest('.flip-card-inner');
+    const flipBack = el.closest('.flip-card-back');
+    let wasFlipped = false;
+    let oldInnerTransform = '';
+    let oldBackTransform = '';
+
+    if (flipInner) {
+        wasFlipped = flipInner.classList.contains('is-flipped');
+        oldInnerTransform = flipInner.style.transform;
+        flipInner.style.transition = 'none';
+        flipInner.classList.remove('is-flipped');
+        flipInner.style.transform = 'none';
+        
+        if (flipBack) {
+            oldBackTransform = flipBack.style.transform;
+            flipBack.style.transform = 'none';
+        }
+    }
+
     if (wasHidden) {
         wrapper.classList.remove('d-none');
         Object.assign(wrapper.style, { position: 'absolute', left: '-9999px', top: '-9999px' });
     }
+
+    const restoreTransforms = () => {
+        if (flipInner) {
+            if (wasFlipped) flipInner.classList.add('is-flipped');
+            flipInner.style.transform = oldInnerTransform;
+            if (flipBack) flipBack.style.transform = oldBackTransform;
+            setTimeout(() => {
+                flipInner.style.transition = '';
+            }, 50);
+        }
+        if (wasHidden && wrapper) {
+            wrapper.classList.add('d-none');
+            Object.assign(wrapper.style, { position: '', left: '', top: '' });
+        }
+    };
 
     // Capture à échelle 3x pour un rendu ultra haute définition (impression carte plastique 300 DPI)
     html2canvas(el, {
@@ -399,20 +560,14 @@ function downloadCartePNG(containerId, filename) {
         backgroundColor: '#ffffff'
     })
     .then(canvas => {
-        if (wasHidden && wrapper) {
-            wrapper.classList.add('d-none');
-            Object.assign(wrapper.style, { position: '', left: '', top: '' });
-        }
+        restoreTransforms();
         const a = document.createElement('a');
         a.download = filename + '.png';
         a.href = canvas.toDataURL('image/png', 1.0);
         a.click();
     })
     .catch(err => {
-        if (wasHidden && wrapper) {
-            wrapper.classList.add('d-none');
-            Object.assign(wrapper.style, { position: '', left: '', top: '' });
-        }
+        restoreTransforms();
         console.error('Erreur PNG:', err);
         alert('Erreur lors de la création du fichier PNG.');
     });

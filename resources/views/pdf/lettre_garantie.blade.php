@@ -28,7 +28,10 @@
 </head>
 <body>
     @php
-        $logoPath = public_path('logo.png');
+        $logoPath = public_path('images/logo_clean.png');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo.png');
+        }
         $logoBase64 = '';
         if (file_exists($logoPath)) {
             $logoData = file_get_contents($logoPath);
@@ -39,16 +42,15 @@
         <tr>
             <td>
                 @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" alt="Logo IPM" style="max-height: 45px; object-fit: contain;">
+                    <img src="{{ $logoBase64 }}" alt="Logo IPM" style="max-height: 48px; width: auto; object-fit: contain;">
                 @else
                     <div class="logo-text">IPM Mbaarum Koolute</div>
                 @endif
                
-                <div style="font-size: 11px; color: #777; margin-top: 5px;">Institution de Prévoyance Maladie
-                     <br>
-                INTER-ENTREPRISES <BR>
-            IMMEUBLE 7 - CITÉ DE L'ÉMERGENCE ADDOHA
-        TEL:33 822 37 34</BR>
+                <div style="font-size: 10px; color: #555; margin-top: 4px; line-height: 1.35;">
+                    <strong style="color: #045689;">Institution de Prévoyance Maladie (IPM) Inter-Entreprises</strong><br>
+                    Cité de l’Émergence, Immeuble 7, Appartement N°4, Dakar<br>
+                    Tél : +221 33 822 37 34 &nbsp;|&nbsp; Horaires : Lundi à vendredi : 08h00–17h00
                 </div>
             </td>
             <td class="company-info">
