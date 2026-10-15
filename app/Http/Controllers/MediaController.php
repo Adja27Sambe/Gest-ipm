@@ -9,18 +9,44 @@ use Illuminate\Support\Facades\Auth;
 
 class MediaController extends Controller
 {
-    /**
-     * Affiche la galerie de médias
-     */
-    public function index()
+    protected \App\Services\MediaManagerService $mediaManager;
+    protected \App\Services\CloudBackupService $cloudBackup;
+
+    public function __construct(\App\Services\MediaManagerService $mediaManager, \App\Services\CloudBackupService $cloudBackup)
     {
-        $perPage = request('per_page', 5);
-        $medias = Media::with('utilisateur')->latest('id_media')->paginate($perPage)->withQueryString();
-        return view('medias.index', compact('medias'));
+        $this->mediaManager = $mediaManager;
+        $this->cloudBackup = $cloudBackup;
     }
 
     /**
-     * Upload un nouveau média dans le dossier public
+     * Affiche la galerie de médias
+     */
+    public function index(Request $request)
+    {
+        $query = Media::with('utilisateur')->latest('id_media');
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('titre', 'like', "%{$search}%")
+                  ->orWhere('nom_fichier_original', 'like', "%{$search}%")
+                  ->orWhere('type_mime', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('cloud_synced')) {
+            $query->where('cloud_synced', $request->boolean('cloud_synced'));
+        }
+
+        $perPage = $request->input('per_page', 5);
+        $medias = $query->paginate($perPage)->withQueryString();
+        $cloudStats = $this->cloudBackup->getSyncStats();
+
+        return view('medias.index', compact('medias', 'cloudStats'));
+    }
+
+    /**
+     * Upload et optimise des nouveaux médias dans la médiathèque
      */
     public function store(Request $request)
     {
@@ -34,23 +60,39 @@ class MediaController extends Controller
         $uploadedMedias = [];
 
         foreach ($request->file('fichiers') as $file) {
-            // Stocker dans le disque public (storage/app/public/medias)
-            $path = $file->store('medias', 'public');
-
-            $media = Media::create([
-                'titre' => $request->titre ?? pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-                'nom_fichier_original' => $file->getClientOriginalName(),
-                'chemin_fichier' => $path,
-                'type_mime' => $file->getClientMimeType(),
-                'taille' => $file->getSize(),
+            $media = $this->mediaManager->storeMedia($file, [
+                'titre' => $request->titre,
                 'texte_alternatif' => $request->texte_alternatif,
-                'id_utilisateur' => Auth::id(),
             ]);
 
             $uploadedMedias[] = $media;
         }
 
-        return back()->with('success', count($uploadedMedias) . ' média(s) uploadé(s) avec succès.');
+        return back()->with('success', count($uploadedMedias) . ' média(s) optimisé(s) et sauvegardé(s) avec succès.');
+    }
+
+    /**
+     * Synchroniser un média individuel vers le Cloud
+     */
+    public function syncCloud($id)
+    {
+        $media = Media::findOrFail($id);
+        $result = $this->cloudBackup->backupMedia($media, true);
+
+        if ($result['success']) {
+            return back()->with('success', "Média #{$media->id_media} sauvegardé sur le Cloud ({$media->cloud_driver}).");
+        }
+
+        return back()->with('error', "Échec de la sauvegarde Cloud : " . ($result['message'] ?? 'Erreur'));
+    }
+
+    /**
+     * Synchroniser tous les médias en attente vers le Cloud
+     */
+    public function syncAllCloud()
+    {
+        $result = $this->cloudBackup->backupAllMedias();
+        return back()->with('success', "Synchronisation Cloud terminée : {$result['synced']} média(s) sauvegardé(s).");
     }
 
     /**

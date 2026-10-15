@@ -12,6 +12,30 @@ class PieceJointe extends Model
     protected $primaryKey = 'id_piece';
     protected $guarded = [];
 
+    protected $casts = [
+        'date_ajout'       => 'date',
+        'cloud_synced'     => 'boolean',
+        'cloud_synced_at'  => 'datetime',
+        'taille'           => 'integer',
+        'created_at'       => 'datetime',
+        'updated_at'       => 'datetime',
+    ];
+
+    /**
+     * Accesseur pour la taille formatée lisible
+     */
+    public function getTailleLisibleAttribute(): string
+    {
+        $bytes = (int) ($this->taille ?? 0);
+        if ($bytes <= 0 && \Illuminate\Support\Facades\Storage::exists($this->chemin_fichier)) {
+            $bytes = \Illuminate\Support\Facades\Storage::size($this->chemin_fichier);
+        }
+        if ($bytes <= 0) return '0 B';
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $i = floor(log($bytes, 1024));
+        return round($bytes / pow(1024, $i), 1) . ' ' . ($units[$i] ?? 'B');
+    }
+
     /**
      * Obtenir le modèle parent (polymorphe) auquel cette pièce jointe appartient
      */

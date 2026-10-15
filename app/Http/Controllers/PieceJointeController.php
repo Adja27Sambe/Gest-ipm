@@ -13,6 +13,15 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class PieceJointeController extends Controller
 {
+    protected \App\Services\MediaManagerService $mediaManager;
+    protected \App\Services\CloudBackupService $cloudBackup;
+
+    public function __construct(\App\Services\MediaManagerService $mediaManager, \App\Services\CloudBackupService $cloudBackup)
+    {
+        $this->mediaManager = $mediaManager;
+        $this->cloudBackup = $cloudBackup;
+    }
+
     /**
      * Tableau de bord global de la gestion documentaire
      */
@@ -24,12 +33,29 @@ class PieceJointeController extends Controller
             $query->where('id_categorie', $request->id_categorie);
         }
 
+        if ($request->filled('cloud_synced')) {
+            $query->where('cloud_synced', $request->boolean('cloud_synced'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('nom_fichier', 'like', "%{$search}%")
+                  ->orWhereHas('utilisateur', function($uq) use ($search) {
+                      $uq->where('login', 'like', "%{$search}%")
+                         ->orWhere('nom', 'like', "%{$search}%");
+                  });
+            });
+        }
+
         $perPage = $request->input('per_page', 5);
         $pieces = $query->paginate($perPage)->withQueryString();
         $categories = CategorieDocument::orderBy('libelle')->get();
+        $cloudStats = $this->cloudBackup->getSyncStats();
 
-        return view('pieces-jointes.index', compact('pieces', 'categories'));
+        return view('pieces-jointes.index', compact('pieces', 'categories', 'cloudStats'));
     }
+
     /**
      * Uploader une nouvelle pièce jointe et l'attacher à une entité existante.
      */
@@ -61,28 +87,37 @@ class PieceJointeController extends Controller
             return back()->with('error', 'L\'entité parente est introuvable.');
         }
 
-        // Vérification de permission basique sur l'entité (peut être délégué à une Policy)
-        // if (!auth()->user()->can('update', $entity)) {
-        //     abort(403, 'Action non autorisée');
-        // }
-
         $file = $request->file('fichier');
         
-        // Sécurité : Stocker dans le dossier privé "documents" qui n'est pas exposé au public (pas dans storage/app/public)
-        $path = $file->store('documents');
+        // Optimisation et sauvegarde sécurisée avec déduplication et cloud backup auto
+        $piece = $this->mediaManager->storeDocument($file, $validated);
 
-        PieceJointe::create([
-            'nom_fichier' => $file->getClientOriginalName(),
-            'type_fichier' => $file->getClientMimeType(),
-            'chemin_fichier' => $path,
-            'date_ajout' => now(),
-            'id_categorie' => $validated['id_categorie'],
-            'id_utilisateur' => Auth::id(),
-            'attachable_type' => $validated['attachable_type'],
-            'attachable_id' => $validated['attachable_id'],
-        ]);
+        $cloudMessage = $piece->cloud_synced ? ' et sauvegardé sur le Cloud (Drive)' : '';
+        return back()->with('success', "Document ajouté avec succès{$cloudMessage}.");
+    }
 
-        return back()->with('success', 'Document ajouté avec succès.');
+    /**
+     * Forcer la synchronisation d'un document spécifique sur le Cloud
+     */
+    public function syncCloud($id)
+    {
+        $piece = PieceJointe::findOrFail($id);
+        $result = $this->cloudBackup->backupDocument($piece, true);
+
+        if ($result['success']) {
+            return back()->with('success', "Document #{$piece->id_piece} synchronisé avec succès sur le Cloud ({$piece->cloud_driver}).");
+        }
+
+        return back()->with('error', "Échec de la sauvegarde Cloud : " . ($result['message'] ?? 'Erreur'));
+    }
+
+    /**
+     * Synchroniser tous les documents en attente sur le Cloud
+     */
+    public function syncAllCloud()
+    {
+        $result = $this->cloudBackup->backupAllDocuments();
+        return back()->with('success', "Synchronisation Cloud terminée : {$result['synced']} document(s) sauvegardé(s).");
     }
 
     /**

@@ -168,6 +168,8 @@ Route::middleware('auth')->group(function () {
         Route::get('pieces-jointes/export', [App\Http\Controllers\PieceJointeController::class, 'export'])->name('pieces-jointes.export');
         Route::get('pieces-jointes', [App\Http\Controllers\PieceJointeController::class, 'index'])->name('pieces-jointes.index');
         Route::post('pieces-jointes', [App\Http\Controllers\PieceJointeController::class, 'store'])->name('pieces-jointes.store');
+        Route::post('pieces-jointes/sync-all-cloud', [App\Http\Controllers\PieceJointeController::class, 'syncAllCloud'])->name('pieces-jointes.sync-all-cloud');
+        Route::post('pieces-jointes/{pieceJointe}/sync-cloud', [App\Http\Controllers\PieceJointeController::class, 'syncCloud'])->name('pieces-jointes.sync-cloud');
         Route::get('pieces-jointes/{pieceJointe}/view', [App\Http\Controllers\PieceJointeController::class, 'show'])->name('pieces-jointes.show');
         Route::get('pieces-jointes/{pieceJointe}/download', [App\Http\Controllers\PieceJointeController::class, 'download'])->name('pieces-jointes.download');
         Route::delete('pieces-jointes/{pieceJointe}', [App\Http\Controllers\PieceJointeController::class, 'destroy'])->name('pieces-jointes.destroy');
@@ -177,6 +179,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:gerer_medias')->group(function() {
         Route::get('medias', [App\Http\Controllers\MediaController::class, 'index'])->name('medias.index');
         Route::post('medias', [App\Http\Controllers\MediaController::class, 'store'])->name('medias.store');
+        Route::post('medias/sync-all-cloud', [App\Http\Controllers\MediaController::class, 'syncAllCloud'])->name('medias.sync-all-cloud');
+        Route::post('medias/{media}/sync-cloud', [App\Http\Controllers\MediaController::class, 'syncCloud'])->name('medias.sync-cloud');
         Route::delete('medias/{media}', [App\Http\Controllers\MediaController::class, 'destroy'])->name('medias.destroy');
     });
 });

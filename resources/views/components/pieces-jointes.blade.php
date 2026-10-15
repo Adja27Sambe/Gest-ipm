@@ -21,7 +21,9 @@
                     <thead class="table-light">
                         <tr>
                             <th>Fichier</th>
+                            <th>Taille</th>
                             <th>Catégorie</th>
+                            <th>Cloud Drive</th>
                             <th>Ajouté le</th>
                             <th>Par</th>
                             <th class="text-end">Actions</th>
@@ -45,20 +47,49 @@
                                         </div>
                                     </div>
                                 </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border font-monospace">{{ $piece->taille_lisible }}</span>
+                                </td>
                                 <td><span class="badge bg-secondary">{{ $piece->categorie->libelle ?? 'Non classé' }}</span></td>
-                                <td>{{ \Carbon\Carbon::parse($piece->date_ajout)->format('d/m/Y H:i') }}</td>
+                                <td>
+                                    @if($piece->cloud_synced)
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle">
+                                            <i class="bi bi-cloud-check-fill me-1"></i> Drive OK
+                                        </span>
+                                    @else
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning-subtle">
+                                            <i class="bi bi-cloud-arrow-up-fill me-1"></i> En attente
+                                        </span>
+                                    @endif
+                                </td>
+                                <td>@formatDateTime($piece->date_ajout)</td>
                                 <td>{{ $piece->utilisateur->nom ?? 'Système' }}</td>
                                 <td class="text-end">
                                     <!-- Prévisualisation si PDF ou Image -->
                                     @if(str_contains($piece->type_fichier, 'pdf') || str_contains($piece->type_fichier, 'image'))
-                                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('{{ route('pieces-jointes.show', $piece->id_piece) }}', '{{ $piece->type_fichier }}', '{{ $piece->nom_fichier }}')">
+                                        <button class="btn btn-sm btn-outline-info me-1" onclick="previewDocument('{{ route('pieces-jointes.show', $piece->id_piece) }}', '{{ $piece->type_fichier }}', '{{ $piece->nom_fichier }}')" title="Aperçu">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     @endif
                                     
-                                    <a href="{{ route('pieces-jointes.download', $piece->id_piece) }}" class="btn btn-sm btn-outline-primary me-1" target="_blank">
+                                    <a href="{{ route('pieces-jointes.download', $piece->id_piece) }}" class="btn btn-sm btn-outline-primary me-1" target="_blank" title="Télécharger">
                                         <i class="fas fa-download"></i>
                                     </a>
+
+                                    @if($piece->cloud_url)
+                                        <a href="{{ $piece->cloud_url }}" class="btn btn-sm btn-outline-success me-1" target="_blank" title="Ouvrir sur Drive">
+                                            <i class="bi bi-google"></i>
+                                        </a>
+                                    @else
+                                        @canedit
+                                        <form action="{{ route('pieces-jointes.sync-cloud', $piece->id_piece) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary me-1" title="Sauvegarder sur le Cloud Drive">
+                                                <i class="bi bi-cloud-arrow-up"></i>
+                                            </button>
+                                        </form>
+                                        @endcanedit
+                                    @endif
                                     
                                     @canedit
                                     <form action="{{ route('pieces-jointes.destroy', $piece->id_piece) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette pièce jointe ?');">

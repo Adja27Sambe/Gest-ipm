@@ -60,6 +60,21 @@ return [
             'report' => false,
         ],
 
+        'cloud' => [
+            'driver' => 'local',
+            'root' => storage_path('app/cloud_backup'),
+            'throw' => false,
+        ],
+
+        'google_drive' => [
+            'driver' => 'local',
+            'root' => storage_path('app/cloud_backup/drive'),
+            'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+            'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+            'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+            'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+        ],
+
     ],
 
     /*
