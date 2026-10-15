@@ -37,6 +37,8 @@ class DemandeService
                 $q->where('libelle', 'like', '%pharmacie%');
             })->first();
             $tauxPriseCharge = $parametre ? $parametre->taux_prise_charge : 75.00;
+        }
+
         if (!empty($data['sous_couvert'])) {
             $tauxPriseCharge = 100.00;
         }
