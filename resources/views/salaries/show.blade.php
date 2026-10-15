@@ -106,6 +106,11 @@
                         <small class="text-muted d-block">Téléphone</small>
                         <span class="fw-medium">{{ $salarie->telephone ?? 'Non défini' }}</span>
                     </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted d-block">Adresse e-mail</small>
+                        <span class="fw-medium">{{ $salarie->email ? $salarie->email : 'Non définie' }}</span>
+                    </div>
                 </div>
             </div>
         </div>

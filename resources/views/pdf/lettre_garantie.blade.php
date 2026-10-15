@@ -68,11 +68,11 @@
     <div class="section-title">Informations du Participant</div>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
         <tr>
-            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 25%; background-color: #f8f9fa; vertical-align: middle;">
+            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 30%; background-color: #f8f9fa; vertical-align: middle;">
                 <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Matricule Participant</span>
                 <span style="font-size: 18px; font-weight: bold; color: #dc3545; letter-spacing: 1px;">{{ $demande->salarie->matricule ?? 'N/A' }}</span>
             </td>
-            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 35%; vertical-align: middle;">
+            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 45%; vertical-align: middle;">
                 <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Identité (Nom et Prénom)</span>
                 @if($demande->ayantDroit)
                     <strong style="font-size: 14px;">{{ $demande->ayantDroit->prenom }} {{ $demande->ayantDroit->nom }}</strong><br>
@@ -80,8 +80,11 @@
                 @else
                     <strong style="font-size: 14px;">{{ $demande->salarie->prenom }} {{ $demande->salarie->nom }}</strong>
                 @endif
+                @if(!empty($demande->sous_couvert))
+                    <br><span style="display: inline-block; margin-top: 4px; padding: 2px 8px; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 4px; font-size: 11px; font-weight: bold;">Prise en charge SOUS COUVERT (100% IPM)</span>
+                @endif
             </td>
-            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 20%; vertical-align: middle;">
+            <td style="padding: 12px 15px; width: 25%; vertical-align: middle;">
                 <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Date de naissance</span>
                 <strong style="font-size: 13px;">
                 @if($demande->ayantDroit)
@@ -90,10 +93,6 @@
                     {{ $demande->salarie->date_naissance ? \Carbon\Carbon::parse($demande->salarie->date_naissance)->format('d/m/Y') : 'N/A' }}
                 @endif
                 </strong>
-            </td>
-            <td style="padding: 12px 15px; width: 20%; vertical-align: middle;">
-                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Entreprise</span>
-                <strong style="font-size: 13px;">{{ $demande->salarie->entreprise->raison_sociale ?? 'Non spécifiée' }}</strong>
             </td>
         </tr>
     </table>

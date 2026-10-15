@@ -53,17 +53,22 @@ class Demande extends Model
 
     public function praticien()
     {
-        return $this->belongsTo(Praticien::class, 'id_praticien', 'id_praticien');
+        return $this->belongsTo(Praticien::class, 'id_praticien', 'PRCLEUNIK');
     }
 
     public function pharmacie()
     {
-        return $this->belongsTo(Pharmacie::class, 'id_pharmacie', 'id_pharmacie');
+        return $this->belongsTo(Pharmacie::class, 'id_pharmacie', 'PHCLEUNIK');
     }
 
     public function typePrestation()
     {
         return $this->belongsTo(TypePrestation::class, 'id_type_prestation', 'id_type_prestation');
+    }
+
+    public function prestation()
+    {
+        return $this->hasOne(Prestation::class, 'id_demande', 'id_demande');
     }
 
     public function prestations()

@@ -22,15 +22,17 @@ class SalarieObserver
             $entrepriseId = $salarie->id_entreprise ?? $salarie->IDADHERANT;
             $entreprise = $entrepriseId ? \App\Models\Entreprise::find($entrepriseId) : null;
             
-            if ($entreprise && !empty($entreprise->code_adherent)) {
-                $codeAdherent = preg_replace('/^(ADH|ENT|MAT)-?/i', '', $entreprise->code_adherent);
-                $originalCode = $entreprise->code_adherent;
+            if ($entreprise && (!empty($entreprise->code_adherent) || !empty($entreprise->prefixe))) {
+                $codeAdherent = !empty($entreprise->prefixe)
+                    ? trim($entreprise->prefixe)
+                    : preg_replace('/^(ADH|ENT|MAT)-?/i', '', $entreprise->code_adherent);
+                $originalCode = $entreprise->code_adherent ?? $codeAdherent;
                 
                 $maxNumber = \App\Models\Salarie::where('IDADHERANT', $entrepriseId)
                     ->whereNotNull('MATRICULE')
                     ->pluck('MATRICULE')
                     ->map(function ($m) use ($codeAdherent, $originalCode) {
-                        $compteurStr = preg_replace('/^(' . preg_quote($originalCode, '/') . '|' . preg_quote($codeAdherent, '/') . ')/i', '', $m);
+                        $compteurStr = preg_replace('/^(' . preg_quote((string)$originalCode, '/') . '|' . preg_quote((string)$codeAdherent, '/') . ')/i', '', $m);
                         return intval(preg_replace('/[^0-9]/', '', $compteurStr));
                     })
                     ->max() ?? 0;

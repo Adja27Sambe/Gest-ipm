@@ -180,6 +180,13 @@
                             <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-2 py-1 rounded-pill">
                                 {{ $p->typePrestation->libelle ?? 'Non défini' }}
                             </span>
+                            @if(!empty($p->sous_couvert) || !empty($p->demande?->sous_couvert))
+                                <div class="mt-1">
+                                    <span class="badge bg-info bg-opacity-15 text-primary border border-info border-opacity-50 rounded-pill px-2 py-0 small fw-bold">
+                                        <i class="bi bi-shield-fill-check me-1"></i>Sous couvert (100%)
+                                    </span>
+                                </div>
+                            @endif
                             @if(!empty($p->details_articles) && is_array($p->details_articles) && count($p->details_articles) > 0)
                                 <div class="mt-1">
                                     <span class="badge bg-light text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small" 
@@ -311,8 +318,9 @@
                                             data-doc-type="{{ strtolower($docType) }}"
                                             data-choix-acte="{{ $choixActe }}"
                                             data-articles-count="{{ $d->nombre_articles }}"
+                                            data-sous-couvert="{{ !empty($d->sous_couvert) ? '1' : '0' }}"
                                             {{ old('id_demande') == $d->id_demande ? 'selected' : '' }}>
-                                        Demande #{{ $d->id_demande }}{{ $d->numero_demande ? ' (' . $d->numero_demande . ')' : '' }} ({{ $docType }}) — {{ $benef }}{{ $choixActe ? ' [' . $choixActe . ']' : '' }} — [{{ ucfirst($d->statut) }}]
+                                        Demande #{{ $d->id_demande }}{{ $d->numero_demande ? ' (' . $d->numero_demande . ')' : '' }} ({{ $docType }}) — {{ $benef }}{{ $choixActe ? ' [' . $choixActe . ']' : '' }}{{ !empty($d->sous_couvert) ? ' 🛡️ [SOUS COUVERT 100%]' : '' }} — [{{ ucfirst($d->statut) }}]
                                     </option>
                                 @endforeach
                             </select>
@@ -419,6 +427,21 @@
                             <div class="form-text small text-muted">Auto-rempli selon l'acte sélectionné ci-dessus ou modifiable manuellement.</div>
                         </div>
 
+                        <!-- Option Sous Couvert -->
+                        <div class="col-12">
+                            <div class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between shadow-xs">
+                                <div>
+                                    <label class="form-check-label fw-bold text-dark mb-0 d-block cursor-pointer" for="modal_prestation_sous_couvert">
+                                        <i class="bi bi-shield-fill-check text-primary me-1"></i> Option « Sous couvert » (100% IPM)
+                                    </label>
+                                    <small class="text-muted">Prise en charge intégrale à 100% par l'IPM (Part IPM = 100%, Part participant = 0 FCFA).</small>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input fs-4 cursor-pointer" type="checkbox" name="sous_couvert" value="1" id="modal_prestation_sous_couvert" onchange="recalculerModalFinances()">
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Aperçu Financier Direct -->
                         <div class="col-12">
                             <div class="p-3 bg-light rounded-3 border d-flex flex-wrap justify-content-between align-items-center gap-3">
@@ -495,6 +518,7 @@ const AVAILABLE_ACTES = {!! json_encode($typesPrestation->map(function($t) {
         'libelle' => $t->libelle,
         'taux' => (float)($t->parametreCouverture->taux_prise_charge ?? 75),
         'pu' => (float)($t->parametreCouverture->plafond_par_acte ?? 0),
+        'types_actes' => $t->typesActes ? $t->typesActes->pluck('libelle')->toArray() : [],
     ];
 })) !!};
 
@@ -619,6 +643,13 @@ function handleModalDemandeChange() {
         }
     }
 
+    // Synchronisation de l'option Sous Couvert depuis la demande
+    const isSousCouvertDemande = opt.getAttribute('data-sous-couvert') === '1';
+    const scSwitch = document.getElementById('modal_prestation_sous_couvert');
+    if (scSwitch) {
+        scSwitch.checked = isSousCouvertDemande;
+    }
+
     // Basculer la visibilité de la colonne Quantité selon le type de demande
     updateQuantiteVisibility();
 
@@ -688,12 +719,19 @@ function handleModalActeSelect(selectEl) {
 
     const acteLibelle = selectedOpt.value;
     const acteTaux = parseFloat(selectedOpt.getAttribute('data-taux'));
-    const acteId = selectedOpt.getAttribute('data-id');
+    const acteId = parseInt(selectedOpt.getAttribute('data-id'));
 
-    // Auto-remplissage du champ préciser l'acte à chaque changement du select
+    // Mettre à jour la datalist des types d'actes pour cette ligne
+    const matched = AVAILABLE_ACTES.find(a => a.id === acteId);
+    const datalist = tr.querySelector('.modal-art-datalist');
+    if (datalist && matched && matched.types_actes) {
+        datalist.innerHTML = matched.types_actes.map(ta => `<option value="${escapeHtml(ta)}"></option>`).join('');
+    }
+
+    // Auto-remplir le champ préciser l'acte s'il était vide ou générique
     const nomInput = tr.querySelector('.modal-art-nom');
-    if (nomInput) {
-        nomInput.value = acteLibelle;
+    if (nomInput && (!nomInput.value || AVAILABLE_ACTES.some(a => a.libelle === nomInput.value))) {
+        nomInput.value = (matched && matched.types_actes && matched.types_actes.length > 0) ? matched.types_actes[0] : acteLibelle;
         nomInput.style.transition = 'background-color 0.3s ease';
         nomInput.style.backgroundColor = '#f0fdf4';
         setTimeout(() => {
@@ -705,7 +743,6 @@ function handleModalActeSelect(selectEl) {
     const modalTauxInput = document.getElementById('modal_taux');
     if (modalTauxInput && !isNaN(acteTaux)) {
         modalTauxInput.value = acteTaux;
-        // Animation de pulsation pour mettre en évidence le taux auto-rempli
         modalTauxInput.style.transition = 'all 0.35s ease';
         modalTauxInput.style.backgroundColor = '#dbeafe';
         modalTauxInput.style.color = '#1e40af';
@@ -759,6 +796,9 @@ function addModalArticleRow(data = {}) {
 
     const idTypeVal = data.id_type_prestation || (matchedActe ? matchedActe.id : '');
     const tr = document.createElement('tr');
+    const datalistId = `datalist_types_actes_${rowIndex}_${Date.now()}`;
+    const initialTypesActes = (matchedActe && matchedActe.types_actes) ? matchedActe.types_actes : [];
+    const datalistOptionsHtml = initialTypesActes.map(ta => `<option value="${escapeHtml(ta)}"></option>`).join('');
 
     const optionsHtml = AVAILABLE_ACTES.map(a => {
         const isSelected = matchedActe && matchedActe.id === a.id;
@@ -770,18 +810,21 @@ function addModalArticleRow(data = {}) {
         <td>
             <div class="input-group input-group-sm">
                 <select class="form-select form-select-sm modal-art-acte-select" 
-                        style="max-width: 180px; font-weight: 500; background-color: #f8fafc;" 
+                        style="max-width: 175px; font-weight: 500; background-color: #f8fafc;" 
                         onchange="handleModalActeSelect(this)" 
-                        title="Sélectionner l'acte médical pour auto-remplir le champ Taux (%)">
-                    <option value="">-- Choisir un acte --</option>
+                        title="Sélectionner l'acte général (Catégorie)">
+                    <option value="">-- Acte général --</option>
                     ${optionsHtml}
                 </select>
                 <input type="text" 
                        name="details_articles[${rowIndex}][nom]" 
                        class="form-control form-control-sm modal-art-nom" 
-                       placeholder="Préciser l'acte ou médicament..." 
-                       value="${escapeHtml(data.nom || '')}" 
-                       required>
+                       list="${datalistId}"
+                       placeholder="Précision / Type d'acte (saisie ou autocomplétion)..." 
+                       value="${escapeHtml(data.nom || '')}">
+                <datalist id="${datalistId}" class="modal-art-datalist">
+                    ${datalistOptionsHtml}
+                </datalist>
                 <input type="hidden" 
                        name="details_articles[${rowIndex}][id_type_prestation]" 
                        class="modal-art-id-type" 
@@ -870,10 +913,28 @@ function recalculerModalArticles() {
 
 function recalculerModalFinances() {
     const montant = parseFloat(document.getElementById('modal_montant').value) || 0;
-    const taux = parseFloat(document.getElementById('modal_taux').value) || 0;
+    const isSousCouvert = document.getElementById('modal_prestation_sous_couvert')?.checked;
+    const statusBadge = document.getElementById('modal_calc_status');
 
-    const partIpm = Math.round((montant * taux) / 100);
-    const reste = Math.max(0, montant - partIpm);
+    let partIpm = 0;
+    let reste = 0;
+
+    if (isSousCouvert) {
+        partIpm = montant;
+        reste = 0;
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-primary bg-opacity-15 text-primary fw-bold px-3 py-2 rounded-pill';
+            statusBadge.innerHTML = '<i class="bi bi-shield-fill-check me-1"></i>SOUS COUVERT (100% IPM)';
+        }
+    } else {
+        const taux = parseFloat(document.getElementById('modal_taux').value) || 0;
+        partIpm = Math.round((montant * taux) / 100);
+        reste = Math.max(0, montant - partIpm);
+        if (statusBadge) {
+            statusBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-3 py-2 rounded-pill';
+            statusBadge.innerHTML = '<i class="bi bi-shield-check me-1"></i>Prise en charge active';
+        }
+    }
 
     document.getElementById('modal_calc_pec').textContent = new Intl.NumberFormat('fr-FR').format(partIpm) + ' FCFA';
     document.getElementById('modal_calc_reste').textContent = new Intl.NumberFormat('fr-FR').format(reste) + ' FCFA';

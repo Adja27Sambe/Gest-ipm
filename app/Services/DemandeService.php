@@ -37,12 +37,15 @@ class DemandeService
                 $q->where('libelle', 'like', '%pharmacie%');
             })->first();
             $tauxPriseCharge = $parametre ? $parametre->taux_prise_charge : 75.00;
+        if (!empty($data['sous_couvert'])) {
+            $tauxPriseCharge = 100.00;
         }
 
         return DB::transaction(function () use ($data, $libelleType, $tauxPriseCharge, $typeDemande) {
             
             // Préfixe unique pour la demande
             $prefix = match (true) {
+                !empty($data['is_regularisation']) => 'REG',
                 str_contains($libelleType, 'bon de commande') => 'BC',
                 str_contains($libelleType, 'feuille de maladie') => 'FM',
                 str_contains($libelleType, 'lettre de garantie') => 'LG',
@@ -54,7 +57,11 @@ class DemandeService
                 'numero_demande' => $this->generateUniqueNumber($prefix, 'demande', 'numero_demande'),
                 'date_demande' => Carbon::now(),
                 'motif' => $data['motif'] ?? null,
-                'statut' => 'en_attente',
+                'statut' => !empty($data['is_regularisation']) ? 'À régulariser' : 'en_attente',
+                'sous_couvert' => !empty($data['sous_couvert']),
+                'is_regularisation' => !empty($data['is_regularisation']),
+                'motif_regularisation' => $data['motif_regularisation'] ?? null,
+                'situation_initiale' => $data['situation_initiale'] ?? null,
                 'id_type_demande' => $data['id_type_demande'],
                 'id_salarie' => $data['id_salarie'],
                 'id_ayant_droit' => $data['id_ayant_droit'] ?? null,
@@ -102,7 +109,8 @@ class DemandeService
         return BonCommande::create([
             'numero_bon' => $this->generateUniqueNumber('BC', 'bon_commande', 'numero_bon'),
             'date_emission' => Carbon::now(),
-            'date_ordonnance' => $data['date_ordonnance'] ?? null,
+            'date_ordonnance' => $data['date_ordonnance'] ?? Carbon::now()->toDateString(),
+            'nom_ordonnateur' => $data['nom_ordonnateur'] ?? null,
             'nombre_articles' => $data['nombre_articles'] ?? 1,
             'taux_prise_charge' => $tauxPriseCharge ?? 75.00,
             'date_validite' => Carbon::now()->endOfMonth(),

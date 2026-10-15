@@ -22,17 +22,44 @@
                             <input type="text" class="form-control @error('code_adherent') is-invalid @enderror" id="code_adherent" name="code_adherent" value="{{ old('code_adherent', $entreprise->code_adherent) }}" placeholder="Optionnel">
                             @error('code_adherent') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+                        <div class="col-md-3">
+                            <label for="lettre_cle" class="form-label fw-medium text-muted">Lettre clé</label>
+                            <input type="text" maxlength="5" class="form-control text-uppercase @error('lettre_cle') is-invalid @enderror" id="lettre_cle" name="lettre_cle" value="{{ old('lettre_cle', $entreprise->lettre_cle) }}" placeholder="Ex: A, K...">
+                            <div class="form-text text-muted">Liée au code adhérent.</div>
+                            @error('lettre_cle') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-3">
+                            <label for="prefixe" class="form-label fw-medium text-muted">Préfixe société</label>
+                            <input type="text" maxlength="15" class="form-control text-uppercase @error('prefixe') is-invalid @enderror" id="prefixe" name="prefixe" value="{{ old('prefixe', $entreprise->prefixe) }}" placeholder="Ex: CBAO, SAR...">
+                            <div class="form-text text-muted">Pour matricules.</div>
+                            @error('prefixe') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="code_comptable" class="form-label fw-medium text-muted">Code comptable</label>
                             <input type="text" class="form-control @error('code_comptable') is-invalid @enderror" id="code_comptable" name="code_comptable" value="{{ old('code_comptable', $entreprise->code_comptable) }}" placeholder="Optionnel">
                             @error('code_comptable') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
+                        <div class="col-md-6">
+                            <label for="date_adhesion" class="form-label fw-medium text-muted">Date d'adhésion</label>
+                            <input type="date" class="form-control @error('date_adhesion') is-invalid @enderror" id="date_adhesion" name="date_adhesion" value="{{ old('date_adhesion', $entreprise->date_adhesion ? \Carbon\Carbon::parse($entreprise->date_adhesion)->format('Y-m-d') : '') }}">
+                            @error('date_adhesion') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="raison_sociale" class="form-label fw-medium text-muted">Raison sociale *</label>
-                        <input type="text" class="form-control form-control-lg @error('raison_sociale') is-invalid @enderror" id="raison_sociale" name="raison_sociale" value="{{ old('raison_sociale', $entreprise->raison_sociale) }}" required>
-                        @error('raison_sociale') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label for="raison_sociale" class="form-label fw-medium text-muted">Raison sociale *</label>
+                            <input type="text" class="form-control form-control-lg @error('raison_sociale') is-invalid @enderror" id="raison_sociale" name="raison_sociale" value="{{ old('raison_sociale', $entreprise->raison_sociale) }}" required>
+                            @error('raison_sociale') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-6">
+                            <label for="activite" class="form-label fw-medium text-muted">Activité de l'entreprise</label>
+                            <input type="text" class="form-control form-control-lg @error('activite') is-invalid @enderror" id="activite" name="activite" value="{{ old('activite', $entreprise->activite) }}" placeholder="Ex: BTP, Banque, Commerce, Services...">
+                            @error('activite') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
                     </div>
 
                     <div class="mb-4">

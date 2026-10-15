@@ -28,6 +28,7 @@ class UpdateSalarieRequest extends FormRequest
             'date_embauche' => 'nullable|date',
             'date_naissance' => 'nullable|date|before:date_embauche',
             'telephone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:100',
             'adresse' => 'nullable|string',
             'salaire' => 'nullable|numeric|min:0',
             'statut' => 'nullable|string',

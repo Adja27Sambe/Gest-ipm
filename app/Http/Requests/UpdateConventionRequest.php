@@ -29,6 +29,7 @@ class UpdateConventionRequest extends FormRequest
             'date_fin' => 'nullable|date|after_or_equal:date_debut',
             'statut' => 'nullable|string|max:50',
             'observations' => 'nullable|string',
+            'document' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx|max:10240',
         ];
     }
 }

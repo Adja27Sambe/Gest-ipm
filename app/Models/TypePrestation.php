@@ -12,9 +12,16 @@ class TypePrestation extends Model
     protected $guarded = [];
 
 
+    use \App\Traits\Auditable;
+
     public function prestations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Prestation::class, 'id_type_prestation', 'id_type_prestation');
+    }
+
+    public function typesActes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(TypeActe::class, 'id_type_prestation', 'id_type_prestation');
     }
 
     public function parametreCouverture(): \Illuminate\Database\Eloquent\Relations\HasOne

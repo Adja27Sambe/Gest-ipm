@@ -259,18 +259,17 @@
 
                             <div class="row g-2 mb-3">
                                 <div class="col-md-7">
-                                    <label for="date_ordonnance" class="form-label fw-semibold text-dark small mb-1">
-                                        Date de prescription <span class="text-danger">*</span>
+                                    <label for="nom_ordonnateur" class="form-label fw-semibold text-dark small mb-1">
+                                        Nom de l’ordonnateur (professionnel prescripteur)
                                     </label>
-                                    <input type="date" 
-                                           name="date_ordonnance" 
-                                           id="date_ordonnance" 
-                                           class="form-control @error('date_ordonnance') is-invalid @enderror" 
-                                           value="{{ old('date_ordonnance', date('Y-m-d')) }}" 
-                                           max="{{ date('Y-m-d') }}"
-                                           min="{{ now()->subMonths(6)->toDateString() }}">
-                                    <div class="form-text small text-muted">Validité maximale : 6 mois</div>
-                                    @error('date_ordonnance')
+                                    <input type="text" 
+                                           name="nom_ordonnateur" 
+                                           id="nom_ordonnateur" 
+                                           class="form-control @error('nom_ordonnateur') is-invalid @enderror" 
+                                           value="{{ old('nom_ordonnateur') }}" 
+                                           placeholder="Ex: Dr. Moussa Diop">
+                                    <div class="form-text small text-muted">Médecin ou prescripteur ayant ordonné la délivrance</div>
+                                    @error('nom_ordonnateur')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -290,6 +289,34 @@
                                     @error('nombre_articles')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                </div>
+
+                                <div class="col-md-6 mt-2">
+                                    <label for="date_ordonnance" class="form-label fw-semibold text-dark small mb-1">
+                                        Date de la prescription
+                                    </label>
+                                    <input type="date" 
+                                           name="date_ordonnance" 
+                                           id="date_ordonnance" 
+                                           class="form-control @error('date_ordonnance') is-invalid @enderror" 
+                                           value="{{ old('date_ordonnance', date('Y-m-d')) }}" 
+                                           max="{{ date('Y-m-d') }}"
+                                           min="{{ now()->subMonths(6)->toDateString() }}">
+                                    <div class="form-text small text-muted">Prescription valide max 6 mois</div>
+                                    @error('date_ordonnance')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
+                                <div class="col-md-6 mt-2">
+                                    <label class="form-label fw-semibold text-dark small mb-1">
+                                        Date limite de validité
+                                    </label>
+                                    <div class="form-control bg-light text-muted d-flex align-items-center">
+                                        <i class="bi bi-calendar-check text-success me-2"></i>
+                                        <span>Dernier jour du mois ({{ now()->endOfMonth()->format('d/m/Y') }})</span>
+                                    </div>
+                                    <div class="form-text small text-muted">Calculée automatiquement par le système</div>
                                 </div>
                             </div>
                         </div>
@@ -383,6 +410,19 @@
                             </div>
                         </div>
 
+                        <!-- OPTION SOUS COUVERT -->
+                        <div class="p-3 mb-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                            <div>
+                                <label class="form-check-label fw-bold text-dark mb-0 d-block" for="sous_couvert_check">
+                                    <i class="bi bi-shield-fill-check text-primary me-1"></i> Option « Sous couvert » (Prise en charge 100% IPM)
+                                </label>
+                                <small class="text-muted">Part IPM = 100%, Part participant = 0%. Distinct du cas participant 100%.</small>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input fs-4" type="checkbox" name="sous_couvert" value="1" id="sous_couvert_check" {{ old('sous_couvert') ? 'checked' : '' }}>
+                            </div>
+                        </div>
+
                     </div>
                     
                     <!-- PIED DU FORMULAIRE : ACTIONS -->
@@ -471,7 +511,6 @@ function handleTypeChange() {
         secObs.style.display = 'none';
 
         pharmacieSelect.setAttribute('required', 'required');
-        dateOrdonnance.setAttribute('required', 'required');
         nombreArticles.setAttribute('required', 'required');
 
         praticienSelect.removeAttribute('required');
@@ -480,7 +519,6 @@ function handleTypeChange() {
         secBon.style.display = 'none';
         pharmacieSelect.removeAttribute('required');
         pharmacieSelect.value = '';
-        dateOrdonnance.removeAttribute('required');
         nombreArticles.removeAttribute('required');
 
         secPrat.style.display = 'block';

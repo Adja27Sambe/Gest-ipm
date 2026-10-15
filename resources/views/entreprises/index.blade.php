@@ -62,8 +62,18 @@
                 <tbody>
                     @forelse($entreprises as $entreprise)
                     <tr class="clickable-row" data-href="{{ route('entreprises.show', $entreprise->id) }}">
-                        <td class="ps-4 text-muted fw-bold">{{ $entreprise->code_adherent ?? 'N/A' }}</td>
-                        <td class="fw-medium">{{ $entreprise->raison_sociale }}</td>
+                        <td class="ps-4 text-muted fw-bold">
+                            {{ $entreprise->code_adherent ?? 'N/A' }}
+                            @if($entreprise->lettre_cle)
+                                <span class="badge bg-light text-primary border ms-1" title="Lettre clé">{{ $entreprise->lettre_cle }}</span>
+                            @endif
+                        </td>
+                        <td class="fw-medium">
+                            {{ $entreprise->raison_sociale }}
+                            @if($entreprise->activite)
+                                <div class="small text-muted"><i class="bi bi-briefcase me-1"></i>{{ $entreprise->activite }}</div>
+                            @endif
+                        </td>
                         <td class="text-muted">{{ $entreprise->email ?? '-' }}</td>
                         <td>
                             <span class="badge bg-secondary rounded-pill">{{ $entreprise->salaries_count }}</span>

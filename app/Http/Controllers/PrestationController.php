@@ -64,7 +64,7 @@ class PrestationController extends Controller
         $perPage = $request->input('per_page', 10);
         $prestations = $query->latest('date_prestation')->latest('id_prestation')->paginate($perPage)->withQueryString();
         
-        $typesPrestation = TypePrestation::with('parametreCouverture')->orderBy('id_type_prestation')->get();
+        $typesPrestation = TypePrestation::with(['parametreCouverture', 'typesActes'])->orderBy('id_type_prestation')->get();
         $praticiens = Praticien::orderBy('NOMPRAT')->get();
         $pharmacies = Pharmacie::orderBy('NOMPHARM')->get();
 
@@ -103,6 +103,7 @@ class PrestationController extends Controller
             'id_demande' => 'required|exists:demande,id_demande',
             'id_praticien' => 'nullable|exists:PRATICIE,PRCLEUNIK',
             'id_pharmacie' => 'nullable|exists:PHARMACI,PHCLEUNIK',
+            'sous_couvert' => 'nullable|boolean',
             'details_articles' => 'nullable|array',
             'details_articles.*.nom' => 'nullable|string|max:255',
             'details_articles.*.quantite' => 'nullable|numeric|min:0',
@@ -122,6 +123,14 @@ class PrestationController extends Controller
             $validated['id_pharmacie'] = $demande->id_pharmacie;
         }
 
+        // Gestion de l'option Sous Couvert (100% IPM, 0% participant)
+        $isSousCouvert = $request->boolean('sous_couvert') || (!empty($demande) && !empty($demande->sous_couvert));
+        if ($isSousCouvert) {
+            $validated['sous_couvert'] = true;
+            $validated['taux_prise_charge'] = 100.00;
+            $validated['reste_a_charge'] = 0.00;
+        }
+
         // Traitement et recalcul des articles et actes avec taux par acte
         if (!empty($validated['details_articles'])) {
             $articles = [];
@@ -131,20 +140,34 @@ class PrestationController extends Controller
 
             foreach ($validated['details_articles'] as $art) {
                 $nom = trim($art['nom'] ?? '');
+                $pu = (float)($art['montant'] ?? 0);
+                // Si la désignation est vide mais un montant est renseigné (ex: pharmacie globale)
+                if ($nom === '' && $pu > 0) {
+                    $nom = 'Produits pharmaceutiques / Soins';
+                }
+
                 $qte = (float)($art['quantite'] ?? 1);
                 if ($qte <= 0) $qte = 1;
-                $pu = (float)($art['montant'] ?? 0);
-                $taux = isset($art['taux']) && $art['taux'] !== '' ? (float)$art['taux'] : (float)($validated['taux_prise_charge'] ?? 75);
+                $taux = $isSousCouvert ? 100.00 : (isset($art['taux']) && $art['taux'] !== '' ? (float)$art['taux'] : (float)($validated['taux_prise_charge'] ?? 75));
                 $idType = !empty($art['id_type_prestation']) ? (int)$art['id_type_prestation'] : null;
 
                 if ($idType && !$firstTypePrestation) {
                     $firstTypePrestation = $idType;
                 }
 
+                // Rattachement automatique et gestion anti-doublon des types d'actes personnalisés
+                if ($idType && !empty($nom) && $nom !== 'Produits pharmaceutiques / Soins') {
+                    try {
+                        \App\Models\TypeActe::findOrCreateClean($idType, $nom);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::info("Type d'acte existant ou ignoré: " . $e->getMessage());
+                    }
+                }
+
                 if ($nom !== '' || $pu > 0) {
                     $totalLigne = round($qte * $pu, 2);
-                    $partIpmLigne = round($totalLigne * ($taux / 100), 2);
-                    $resteLigne = max(0, $totalLigne - $partIpmLigne);
+                    $partIpmLigne = $isSousCouvert ? $totalLigne : round($totalLigne * ($taux / 100), 2);
+                    $resteLigne = $isSousCouvert ? 0.00 : max(0, $totalLigne - $partIpmLigne);
 
                     $articles[] = [
                         'nom' => $nom,
@@ -164,8 +187,8 @@ class PrestationController extends Controller
             $validated['details_articles'] = !empty($articles) ? $articles : null;
             if ($totalArticles > 0) {
                 $validated['montant'] = $totalArticles;
-                $validated['reste_a_charge'] = max(0, $totalArticles - $totalPartIpm);
-                $validated['taux_prise_charge'] = round(($totalPartIpm / $totalArticles) * 100, 1);
+                $validated['reste_a_charge'] = $isSousCouvert ? 0.00 : max(0, $totalArticles - $totalPartIpm);
+                $validated['taux_prise_charge'] = $isSousCouvert ? 100.00 : round(($totalPartIpm / $totalArticles) * 100, 1);
             }
             if ($firstTypePrestation && empty($validated['id_type_prestation'])) {
                 $validated['id_type_prestation'] = $firstTypePrestation;
@@ -211,7 +234,7 @@ class PrestationController extends Controller
     {
         $prestation->load(['typePrestation.parametreCouverture', 'praticien', 'pharmacie', 'demande.salarie', 'demande.ayantDroit', 'demande.typeDemande', 'demande.bonCommande', 'demande.lettreGarantie']);
         
-        $typesPrestation = TypePrestation::with('parametreCouverture')->orderBy('id_type_prestation')->get();
+        $typesPrestation = TypePrestation::with(['parametreCouverture', 'typesActes'])->orderBy('id_type_prestation')->get();
         $praticiens = Praticien::orderBy('NOMPRAT')->get();
         $pharmacies = Pharmacie::orderBy('NOMPHARM')->get();
         $demandes = Demande::where(function($q) use ($prestation) {
@@ -238,6 +261,7 @@ class PrestationController extends Controller
             'id_demande' => 'required|exists:demande,id_demande',
             'id_praticien' => 'nullable|exists:PRATICIE,PRCLEUNIK',
             'id_pharmacie' => 'nullable|exists:PHARMACI,PHCLEUNIK',
+            'sous_couvert' => 'nullable|boolean',
             'details_articles' => 'nullable|array',
             'details_articles.*.nom' => 'nullable|string|max:255',
             'details_articles.*.quantite' => 'nullable|numeric|min:0',
@@ -257,6 +281,14 @@ class PrestationController extends Controller
             $validated['id_pharmacie'] = $demande->id_pharmacie;
         }
 
+        // Gestion de l'option Sous Couvert (100% IPM, 0% participant)
+        $isSousCouvert = $request->boolean('sous_couvert') || (!empty($demande) && !empty($demande->sous_couvert));
+        if ($isSousCouvert) {
+            $validated['sous_couvert'] = true;
+            $validated['taux_prise_charge'] = 100.00;
+            $validated['reste_a_charge'] = 0.00;
+        }
+
         // Traitement et recalcul des articles / actes avec taux par acte
         if (!empty($validated['details_articles'])) {
             $articles = [];
@@ -266,20 +298,33 @@ class PrestationController extends Controller
 
             foreach ($validated['details_articles'] as $art) {
                 $nom = trim($art['nom'] ?? '');
+                $pu = (float)($art['montant'] ?? 0);
+                if ($nom === '' && $pu > 0) {
+                    $nom = 'Produits pharmaceutiques / Soins';
+                }
+
                 $qte = (float)($art['quantite'] ?? 1);
                 if ($qte <= 0) $qte = 1;
-                $pu = (float)($art['montant'] ?? 0);
-                $taux = isset($art['taux']) && $art['taux'] !== '' ? (float)$art['taux'] : (float)($validated['taux_prise_charge'] ?? $prestation->taux_prise_charge ?? 75);
+                $taux = $isSousCouvert ? 100.00 : (isset($art['taux']) && $art['taux'] !== '' ? (float)$art['taux'] : (float)($validated['taux_prise_charge'] ?? $prestation->taux_prise_charge ?? 75));
                 $idType = !empty($art['id_type_prestation']) ? (int)$art['id_type_prestation'] : null;
 
                 if ($idType && !$firstTypePrestation) {
                     $firstTypePrestation = $idType;
                 }
 
+                // Rattachement automatique et gestion anti-doublon des types d'actes personnalisés
+                if ($idType && !empty($nom) && $nom !== 'Produits pharmaceutiques / Soins') {
+                    try {
+                        \App\Models\TypeActe::findOrCreateClean($idType, $nom);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::info("Type d'acte existant ou ignoré: " . $e->getMessage());
+                    }
+                }
+
                 if ($nom !== '' || $pu > 0) {
                     $totalLigne = round($qte * $pu, 2);
-                    $partIpmLigne = round($totalLigne * ($taux / 100), 2);
-                    $resteLigne = max(0, $totalLigne - $partIpmLigne);
+                    $partIpmLigne = $isSousCouvert ? $totalLigne : round($totalLigne * ($taux / 100), 2);
+                    $resteLigne = $isSousCouvert ? 0.00 : max(0, $totalLigne - $partIpmLigne);
 
                     $articles[] = [
                         'nom' => $nom,
@@ -299,8 +344,8 @@ class PrestationController extends Controller
             $validated['details_articles'] = !empty($articles) ? $articles : null;
             if ($totalArticles > 0) {
                 $validated['montant'] = $totalArticles;
-                $validated['reste_a_charge'] = max(0, $totalArticles - $totalPartIpm);
-                $validated['taux_prise_charge'] = round(($totalPartIpm / $totalArticles) * 100, 1);
+                $validated['reste_a_charge'] = $isSousCouvert ? 0.00 : max(0, $totalArticles - $totalPartIpm);
+                $validated['taux_prise_charge'] = $isSousCouvert ? 100.00 : round(($totalPartIpm / $totalArticles) * 100, 1);
             }
             if ($firstTypePrestation && empty($validated['id_type_prestation'])) {
                 $validated['id_type_prestation'] = $firstTypePrestation;

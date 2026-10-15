@@ -48,6 +48,10 @@ class Entreprise extends Model
         'mt_cotise_staff'     => 'MT_COTISE_STAFF',
         'email_contact'       => 'Email_Contact',
         'id_fda'              => 'IDFDA',
+        'activite'            => 'ACTIVITE',
+        'date_adhesion'       => 'DATE_ADHESION',
+        'lettre_cle'          => 'LETTRE_CLE',
+        'prefixe'             => 'PREFIXE',
     ];
 
     /**

@@ -26,6 +26,10 @@ class UpdateEntrepriseRequest extends FormRequest
             'adresse' => 'nullable|string',
             'telephone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
+            'activite' => 'nullable|string|max:255',
+            'date_adhesion' => 'nullable|date',
+            'lettre_cle' => 'nullable|string|max:10',
+            'prefixe' => 'nullable|string|max:20',
         ];
     }
 }

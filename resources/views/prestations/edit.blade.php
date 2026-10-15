@@ -310,6 +310,21 @@
                                 <div class="form-text small text-muted">Auto-rempli selon l'acte sélectionné ci-dessus ou modifiable manuellement.</div>
                                 @error('taux_prise_charge') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                             </div>
+
+                            <!-- Option Sous Couvert -->
+                            <div class="col-12 mt-3">
+                                <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <label class="form-check-label fw-bold text-dark mb-0 d-block cursor-pointer" for="edit_prestation_sous_couvert">
+                                            <i class="bi bi-shield-fill-check text-primary me-1"></i> Option « Sous couvert » (100% IPM)
+                                        </label>
+                                        <small class="text-muted">Part IPM = 100%, Part participant = 0 FCFA. Prise en charge intégrale.</small>
+                                    </div>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input fs-4 cursor-pointer" type="checkbox" name="sous_couvert" value="1" id="edit_prestation_sous_couvert" {{ old('sous_couvert', $prestation->sous_couvert) ? 'checked' : '' }} onchange="recalculerFinances()">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -408,6 +423,7 @@ const AVAILABLE_ACTES = {!! json_encode($typesPrestation->map(function($t) {
         'libelle' => $t->libelle,
         'taux' => (float)($t->parametreCouverture->taux_prise_charge ?? 75),
         'pu' => (float)($t->parametreCouverture->plafond_par_acte ?? 0),
+        'types_actes' => $t->typesActes ? $t->typesActes->pluck('libelle')->toArray() : [],
     ];
 })) !!};
 
@@ -563,12 +579,19 @@ function handleArticleActeSelect(selectEl) {
 
     const acteLibelle = selectedOpt.value;
     const acteTaux = parseFloat(selectedOpt.getAttribute('data-taux'));
-    const acteId = selectedOpt.getAttribute('data-id');
+    const acteId = parseInt(selectedOpt.getAttribute('data-id'));
+
+    // Mettre à jour la datalist des types d'actes pour cette ligne
+    const matched = AVAILABLE_ACTES.find(a => a.id === acteId);
+    const datalist = tr.querySelector('.article-datalist');
+    if (datalist && matched && matched.types_actes) {
+        datalist.innerHTML = matched.types_actes.map(ta => `<option value="${escapeHtml(ta)}"></option>`).join('');
+    }
 
     // Auto-remplissage du champ préciser l'acte à chaque changement du select
     const nomInput = tr.querySelector('.article-nom');
-    if (nomInput) {
-        nomInput.value = acteLibelle;
+    if (nomInput && (!nomInput.value || AVAILABLE_ACTES.some(a => a.libelle === nomInput.value))) {
+        nomInput.value = (matched && matched.types_actes && matched.types_actes.length > 0) ? matched.types_actes[0] : acteLibelle;
         nomInput.style.transition = 'background-color 0.3s ease';
         nomInput.style.backgroundColor = '#f0fdf4';
         setTimeout(() => {
@@ -634,6 +657,9 @@ function addArticleRow(data = {}) {
 
     const idTypeVal = data.id_type_prestation || (matchedActe ? matchedActe.id : '');
     const tr = document.createElement('tr');
+    const datalistId = `datalist_edit_actes_${rowIndex}_${Date.now()}`;
+    const initialTypesActes = (matchedActe && matchedActe.types_actes) ? matchedActe.types_actes : [];
+    const datalistOptionsHtml = initialTypesActes.map(ta => `<option value="${escapeHtml(ta)}"></option>`).join('');
 
     const optionsHtml = AVAILABLE_ACTES.map(a => {
         const isSelected = matchedActe && matchedActe.id === a.id;
@@ -646,18 +672,21 @@ function addArticleRow(data = {}) {
         <td>
             <div class="input-group input-group-sm">
                 <select class="form-select form-select-sm article-acte-select" 
-                        style="max-width: 180px; font-weight: 500; background-color: #f8fafc;" 
+                        style="max-width: 175px; font-weight: 500; background-color: #f8fafc;" 
                         onchange="handleArticleActeSelect(this)" 
-                        title="Sélectionner l'acte médical pour auto-remplir le champ Taux (%)">
-                    <option value="">-- Choisir un acte --</option>
+                        title="Sélectionner l'acte général (Catégorie)">
+                    <option value="">-- Acte général --</option>
                     ${optionsHtml}
                 </select>
                 <input type="text" 
                        name="details_articles[${rowIndex}][nom]" 
                        class="form-control form-control-sm article-nom" 
-                       placeholder="Préciser l'acte ou médicament..." 
-                       value="${escapeHtml(data.nom || '')}" 
-                       required>
+                       list="${datalistId}"
+                       placeholder="Précision / Type d'acte (saisie ou autocomplétion)..." 
+                       value="${escapeHtml(data.nom || '')}">
+                <datalist id="${datalistId}" class="article-datalist">
+                    ${datalistOptionsHtml}
+                </datalist>
                 <input type="hidden" 
                        name="details_articles[${rowIndex}][id_type_prestation]" 
                        class="article-id-type" 
@@ -761,17 +790,27 @@ function updateArticleCalculations() {
 
 function recalculerFinances() {
     const montant = parseFloat(document.getElementById('montant_input').value) || 0;
-    const taux = parseFloat(document.getElementById('taux_input').value) || 0;
+    const isSousCouvert = document.getElementById('edit_prestation_sous_couvert')?.checked;
 
-    const partIpm = Math.round((montant * taux) / 100);
-    const resteCharge = Math.max(0, montant - partIpm);
+    let partIpm = 0;
+    let resteCharge = 0;
+
+    if (isSousCouvert) {
+        partIpm = montant;
+        resteCharge = 0;
+        document.getElementById('calc_taux_badge').textContent = '100% (Sous couvert)';
+        document.getElementById('calc_reste_badge').textContent = '0%';
+    } else {
+        const taux = parseFloat(document.getElementById('taux_input').value) || 0;
+        partIpm = Math.round((montant * taux) / 100);
+        resteCharge = Math.max(0, montant - partIpm);
+        document.getElementById('calc_taux_badge').textContent = taux + '%';
+        document.getElementById('calc_reste_badge').textContent = (100 - taux) + '%';
+    }
 
     document.getElementById('calc_total_display').textContent = formatFCFA(montant);
     document.getElementById('calc_pec_display').textContent = formatFCFA(partIpm);
     document.getElementById('calc_reste_display').textContent = formatFCFA(resteCharge);
-
-    document.getElementById('calc_taux_badge').textContent = taux + '%';
-    document.getElementById('calc_reste_badge').textContent = (100 - taux) + '%';
 }
 
 document.addEventListener("DOMContentLoaded", function() {

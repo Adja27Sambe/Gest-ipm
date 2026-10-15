@@ -24,13 +24,52 @@ class PrestationObserver
 
     private function calculerResteACharge(Prestation $prestation): void
     {
+        // 1. Prise en charge SOUS COUVERT (100% IPM, 0% participant)
+        $estSousCouvert = (bool) ($prestation->sous_couvert ?? false);
+        if (!$estSousCouvert && !empty($prestation->id_demande)) {
+            $demande = $prestation->demande ?? \App\Models\Demande::find($prestation->id_demande);
+            if ($demande && !empty($demande->sous_couvert)) {
+                $estSousCouvert = true;
+                $prestation->sous_couvert = true;
+            }
+        }
+
+        if ($estSousCouvert) {
+            $prestation->taux_prise_charge = 100.00;
+            $prestation->reste_a_charge = 0.00;
+
+            if (is_array($prestation->details_articles) && count($prestation->details_articles) > 0) {
+                $nouveauxArticles = [];
+                $totalArticles = 0;
+                foreach ($prestation->details_articles as $article) {
+                    $pu = (float) ($article['montant'] ?? 0);
+                    $qte = (float) ($article['quantite'] ?? 1);
+                    if ($qte <= 0) $qte = 1;
+                    $totalLigne = round($pu * $qte, 2);
+
+                    $article['part_ipm'] = $totalLigne;
+                    $article['part_participant'] = 0.00;
+                    $article['reste_a_charge'] = 0.00;
+                    $article['taux'] = 100.00;
+
+                    $nouveauxArticles[] = $article;
+                    $totalArticles += $totalLigne;
+                }
+                $prestation->details_articles = $nouveauxArticles;
+                if ($totalArticles > 0) {
+                    $prestation->montant = $totalArticles;
+                }
+            }
+            return;
+        }
+
         $parametre = \App\Models\ParametreCouverture::where('id_type_prestation', $prestation->id_type_prestation)->first();
         
         if (!$parametre) {
             // fallback to basic calculation
             if ($prestation->montant !== null && $prestation->taux_prise_charge !== null) {
                 $priseEnCharge = ($prestation->montant * $prestation->taux_prise_charge) / 100;
-                $prestation->reste_a_charge = $prestation->montant - $priseEnCharge;
+                $prestation->reste_a_charge = max(0, $prestation->montant - $priseEnCharge);
             }
             return;
         }
@@ -42,72 +81,83 @@ class PrestationObserver
             $nouveauxArticles = [];
             
             foreach ($prestation->details_articles as $article) {
-                $montantLigne = $article['montant'] ?? 0;
-                $quantite = $article['quantite'] ?? 1;
-                $totalLigne = $montantLigne * $quantite;
+                $montantLigne = (float) ($article['montant'] ?? 0);
+                $quantite = (float) ($article['quantite'] ?? 1);
+                if ($quantite <= 0) $quantite = 1;
+                $totalLigne = round($montantLigne * $quantite, 2);
                 
                 $partIpm = 0;
                 $partParticipant = $totalLigne;
 
-                $estExclusion = $article['est_exclusion'] ?? false;
-                // Si la ligne spécifie un type de calcul, on l'utilise. Sinon on utilise celui du paramètre global.
+                $estExclusion = (bool) ($article['est_exclusion'] ?? false);
                 $typeCalculLigne = $article['type_calcul'] ?? $parametre->type_calcul ?? 'POURCENTAGE';
                 
-                if ($estExclusion) {
+                if ($estExclusion || $typeCalculLigne === 'EXCLUSION' || $typeCalculLigne === '100_PERCENT_PARTICIPANT') {
                     $partIpm = 0;
                     $partParticipant = $totalLigne;
+                } elseif ($typeCalculLigne === 'SOUS_COUVERT') {
+                    $partIpm = $totalLigne;
+                    $partParticipant = 0;
                 } else {
                     switch ($typeCalculLigne) {
+                        case 'MONTANT_REFERENTIEL':
+                            $ref = (float) ($article['montant_referentiel'] ?? $parametre->montant_referentiel ?? $parametre->ticket_moderateur ?? 0);
+                            if ($ref > 0) {
+                                if ($totalLigne <= $ref) {
+                                    $partIpm = $totalLigne;
+                                    $partParticipant = 0;
+                                } else {
+                                    $partIpm = $ref;
+                                    $partParticipant = max(0, $totalLigne - $partIpm);
+                                }
+                            } else {
+                                $partIpm = $totalLigne;
+                                $partParticipant = 0;
+                            }
+                            break;
+
                         case 'TARIF_JOURNALIER':
-                            // Ex: chambre d'hospitalisation
-                            $tarifPlafond = $article['tarif_journalier'] ?? $parametre->tarif_journalier ?? 20000;
-                            if ($montantLigne <= $tarifPlafond) {
+                            // Ex: chambre d'hospitalisation (ex: 20 000 FCFA/jour)
+                            $tarifPlafond = (float) ($article['tarif_journalier'] ?? $parametre->tarif_journalier ?? 20000);
+                            $plafondTotal = $tarifPlafond * $quantite;
+                            if ($totalLigne <= $plafondTotal) {
                                 $partIpm = $totalLigne;
                                 $partParticipant = 0;
                             } else {
-                                $partIpm = $tarifPlafond * $quantite;
-                                $partParticipant = $totalLigne - $partIpm;
+                                $partIpm = $plafondTotal;
+                                $partParticipant = max(0, $totalLigne - $partIpm);
                             }
                             break;
                             
                         case 'PLAFOND':
-                            // Ex: optique médicale
-                            $plafond = $article['montant_plafond'] ?? $parametre->montant_plafond ?? 30000;
+                            // Ex: optique médicale (ex: 30 000 FCFA/paire)
+                            $plafond = (float) ($article['montant_plafond'] ?? $parametre->montant_plafond ?? 30000);
                             if ($totalLigne <= $plafond) {
                                 $partIpm = $totalLigne;
                                 $partParticipant = 0;
                             } else {
                                 $partIpm = $plafond;
-                                $partParticipant = $totalLigne - $partIpm;
+                                $partParticipant = max(0, $totalLigne - $partIpm);
                             }
                             break;
                             
                         case 'FORFAIT':
-                            // Ex: maternité sans complication
-                            $forfait = $article['montant_forfait'] ?? $parametre->montant_forfait ?? 50000;
+                            // Ex: forfait maternité sans complication (ex: 50 000 FCFA)
+                            $forfait = (float) ($article['montant_forfait'] ?? $parametre->montant_forfait ?? 50000);
                             if ($totalLigne <= $forfait) {
                                 $partIpm = $totalLigne;
                                 $partParticipant = 0;
                             } else {
                                 $partIpm = $forfait;
-                                $partParticipant = $totalLigne - $partIpm;
+                                $partParticipant = max(0, $totalLigne - $partIpm);
                             }
-                            break;
-                            
-                        case '100_PERCENT_PARTICIPANT':
-                        case 'EXCLUSION':
-                            $partIpm = 0;
-                            $partParticipant = $totalLigne;
                             break;
                             
                         case 'POURCENTAGE':
                         default:
-                            $tauxIpm = $article['taux_prise_charge'] ?? $parametre->taux_prise_charge ?? $prestation->taux_prise_charge ?? 0;
-                            $partIpm = ($totalLigne * $tauxIpm) / 100;
-                            if (!empty($parametre->plafond_par_acte) && $partIpm > $parametre->plafond_par_acte) {
-                                $partIpm = $parametre->plafond_par_acte;
-                            }
-                            $partParticipant = $totalLigne - $partIpm;
+                            $tauxIpm = isset($article['taux']) ? (float)$article['taux'] : (float)($parametre->taux_prise_charge ?? $prestation->taux_prise_charge ?? 0);
+                            $partIpm = round(($totalLigne * $tauxIpm) / 100, 2);
+                            $partParticipant = max(0, $totalLigne - $partIpm);
                             break;
                     }
                 }
@@ -122,81 +172,88 @@ class PrestationObserver
             }
             
             $prestation->details_articles = $nouveauxArticles;
-            // On met à jour le montant total pour qu'il corresponde à la somme des articles
             $prestation->montant = $totalPriseEnCharge + $totalResteACharge;
             $prestation->reste_a_charge = $totalResteACharge;
-            // Calcul d'un taux moyen indicatif si besoin
             if ($prestation->montant > 0) {
-                $prestation->taux_prise_charge = ($totalPriseEnCharge / $prestation->montant) * 100;
+                $prestation->taux_prise_charge = round(($totalPriseEnCharge / $prestation->montant) * 100, 2);
             }
             
         } else {
             // Pas de détails d'articles, on applique la règle globale au montant global
-            $total = $prestation->montant ?? 0;
+            $total = (float) ($prestation->montant ?? 0);
             $typeCalcul = $parametre->type_calcul ?? 'POURCENTAGE';
             $partIpm = 0;
             $partParticipant = $total;
             
-            if ($parametre->est_exclusion) {
+            if ($parametre->est_exclusion || $typeCalcul === 'EXCLUSION' || $typeCalcul === '100_PERCENT_PARTICIPANT') {
                 $partIpm = 0;
                 $partParticipant = $total;
+            } elseif ($typeCalcul === 'SOUS_COUVERT') {
+                $partIpm = $total;
+                $partParticipant = 0;
             } else {
                 switch ($typeCalcul) {
+                    case 'MONTANT_REFERENTIEL':
+                        $ref = (float) ($parametre->montant_referentiel ?? $parametre->ticket_moderateur ?? 0);
+                        if ($ref > 0) {
+                            if ($total <= $ref) {
+                                $partIpm = $total;
+                                $partParticipant = 0;
+                            } else {
+                                $partIpm = $ref;
+                                $partParticipant = max(0, $total - $partIpm);
+                            }
+                        } else {
+                            $partIpm = $total;
+                            $partParticipant = 0;
+                        }
+                        break;
+
                     case 'TARIF_JOURNALIER': 
-                        $tarifPlafond = $parametre->tarif_journalier ?? 20000;
+                        $tarifPlafond = (float) ($parametre->tarif_journalier ?? 20000);
                         if ($total <= $tarifPlafond) {
                             $partIpm = $total;
                             $partParticipant = 0;
                         } else {
-                            $partIpm = $tarifPlafond; // Sans quantité, on suppose 1 jour si non fourni en détail
-                            $partParticipant = $total - $partIpm;
+                            $partIpm = $tarifPlafond;
+                            $partParticipant = max(0, $total - $partIpm);
                         }
                         break;
                         
                     case 'PLAFOND':
-                        $plafond = $parametre->montant_plafond ?? 30000;
+                        $plafond = (float) ($parametre->montant_plafond ?? 30000);
                         if ($total <= $plafond) {
                             $partIpm = $total;
                             $partParticipant = 0;
                         } else {
                             $partIpm = $plafond;
-                            $partParticipant = $total - $partIpm;
+                            $partParticipant = max(0, $total - $partIpm);
                         }
                         break;
                         
                     case 'FORFAIT':
-                        $forfait = $parametre->montant_forfait ?? 50000;
+                        $forfait = (float) ($parametre->montant_forfait ?? 50000);
                         if ($total <= $forfait) {
                             $partIpm = $total;
                             $partParticipant = 0;
                         } else {
                             $partIpm = $forfait;
-                            $partParticipant = $total - $partIpm;
+                            $partParticipant = max(0, $total - $partIpm);
                         }
-                        break;
-                        
-                    case '100_PERCENT_PARTICIPANT':
-                    case 'EXCLUSION':
-                        $partIpm = 0;
-                        $partParticipant = $total;
                         break;
                         
                     case 'POURCENTAGE':
                     default:
-                        $tauxIpm = $parametre->taux_prise_charge ?? $prestation->taux_prise_charge ?? 0;
-                        $partIpm = ($total * $tauxIpm) / 100;
-                        // Application de l'ancien plafond par acte si défini
-                        if (!empty($parametre->plafond_par_acte) && $partIpm > $parametre->plafond_par_acte) {
-                            $partIpm = $parametre->plafond_par_acte;
-                        }
-                        $partParticipant = $total - $partIpm;
+                        $tauxIpm = (float) ($parametre->taux_prise_charge ?? $prestation->taux_prise_charge ?? 0);
+                        $partIpm = round(($total * $tauxIpm) / 100, 2);
+                        $partParticipant = max(0, $total - $partIpm);
                         break;
                 }
             }
             
             $prestation->reste_a_charge = $partParticipant;
             if ($total > 0 && ($typeCalcul !== 'POURCENTAGE' || $prestation->taux_prise_charge === null)) {
-                $prestation->taux_prise_charge = ($partIpm / $total) * 100;
+                $prestation->taux_prise_charge = round(($partIpm / $total) * 100, 2);
             }
         }
     }

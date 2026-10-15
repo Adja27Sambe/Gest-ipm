@@ -22,6 +22,10 @@ class StoreEntrepriseRequest extends FormRequest
             'telephone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:100',
             'statut' => 'nullable|string|in:actif,suspendu,résilié',
+            'activite' => 'nullable|string|max:255',
+            'date_adhesion' => 'nullable|date',
+            'lettre_cle' => 'nullable|string|max:10',
+            'prefixe' => 'nullable|string|max:20',
         ];
     }
 }

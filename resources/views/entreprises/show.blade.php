@@ -24,11 +24,19 @@
             <div class="card-body p-4">
                 <div class="row">
                     <div class="col-md-6 mb-4">
-                        <p class="text-muted mb-1 text-uppercase small fw-bold">Code adhérent</p>
-                        <p class="fs-5">{{ $entreprise->code_adherent ?? 'Non renseigné' }}</p>
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Code adhérent & Clé</p>
+                        <p class="fs-5">
+                            <strong>{{ $entreprise->code_adherent ?? 'Non renseigné' }}</strong>
+                            @if($entreprise->lettre_cle)
+                                <span class="badge bg-info bg-opacity-10 text-info border border-info-subtle ms-2">Clé : {{ $entreprise->lettre_cle }}</span>
+                            @endif
+                            @if($entreprise->prefixe)
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border ms-1">Préfixe : {{ $entreprise->prefixe }}</span>
+                            @endif
+                        </p>
                     </div>
                     <div class="col-md-6 mb-4">
-                        <p class="text-muted mb-1 text-uppercase small fw-bold">Statut</p>
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Statut & Adhésion</p>
                         <p class="fs-5">
                             @if($entreprise->statut == 'actif')
                                 <span class="badge bg-success">Actif</span>
@@ -39,7 +47,21 @@
                             @else
                                 <span class="badge bg-secondary">{{ $entreprise->statut ?? 'Non défini' }}</span>
                             @endif
+
+                            @if($entreprise->date_adhesion)
+                                <span class="text-muted small ms-2 fs-6">Adhésion : {{ \Carbon\Carbon::parse($entreprise->date_adhesion)->format('d/m/Y') }}</span>
+                            @endif
                         </p>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Activité / Secteur</p>
+                        <p class="fs-6 fw-medium text-dark">{{ $entreprise->activite ?: 'Non renseignée' }}</p>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <p class="text-muted mb-1 text-uppercase small fw-bold">Code comptable</p>
+                        <p class="fs-6 font-monospace">{{ $entreprise->code_comptable ?: 'Non renseigné' }}</p>
                     </div>
                     
                     <div class="col-md-6 mb-4">

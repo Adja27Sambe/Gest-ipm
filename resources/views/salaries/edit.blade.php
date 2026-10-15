@@ -115,6 +115,12 @@
                         <input type="text" name="telephone" class="form-control bg-light border-0 @error('telephone') is-invalid @enderror" value="{{ old('telephone', $salarie->telephone) }}">
                         @error('telephone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-medium">Adresse e-mail <span class="text-muted small fw-normal">(facultative)</span></label>
+                        <input type="email" name="email" class="form-control bg-light border-0 @error('email') is-invalid @enderror" value="{{ old('email', $salarie->email) }}" placeholder="nom.prenom@exemple.com">
+                        @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
                     
                     <div class="col-md-12">
                         <label class="form-label fw-medium">Adresse</label>

@@ -46,13 +46,19 @@ class StoreDemandeRequest extends FormRequest
             'date_demande' => 'nullable|date',
             'observations' => 'nullable|string|max:1000',
             'diagnostic' => 'nullable|string|max:1000',
+            'nom_ordonnateur' => 'nullable|string|max:255',
+            'sous_couvert' => 'nullable|boolean',
+            'is_regularisation' => 'nullable|boolean',
+            'motif_regularisation' => 'nullable|string|max:1000',
+            'situation_initiale' => 'nullable|string|max:1000',
         ];
 
         if (str_contains($libelle, 'bon')) {
-            // RÈGLES BON DE COMMANDE : Pharmacie requise, pas de médecin, ordonnance valide max 6 mois, nb articles >= 1
+            // RÈGLES BON DE COMMANDE : Pharmacie requise, pas de médecin, ordonnateur / ordonnance
             $rules['id_pharmacie'] = 'required|exists:PHARMACI,PHCLEUNIK';
             $rules['id_praticien'] = 'nullable|prohibited';
-            $rules['date_ordonnance'] = 'required|date|before_or_equal:today|after_or_equal:' . now()->subMonths(6)->toDateString();
+            $rules['nom_ordonnateur'] = 'nullable|string|max:255';
+            $rules['date_ordonnance'] = 'nullable|date|before_or_equal:today|after_or_equal:' . now()->subMonths(6)->toDateString();
             $rules['nombre_articles'] = 'required|integer|min:1';
         } elseif (str_contains($libelle, 'feuille')) {
             // RÈGLES FEUILLE DE MALADIE : Praticien (médecin/clinique) requis, pas de pharmacie

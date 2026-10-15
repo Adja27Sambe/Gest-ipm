@@ -94,7 +94,12 @@
                                             <i class="bi bi-person"></i>
                                         </div>
                                     @endif
-                                    {{ $salarie->prenom }} {{ $salarie->nom }}
+                                    <div>
+                                        <div class="fw-semibold text-dark">{{ $salarie->prenom }} {{ $salarie->nom }}</div>
+                                        @if($salarie->email)
+                                            <div class="small text-muted" style="font-size: 0.78rem;"><i class="bi bi-envelope me-1"></i>{{ $salarie->email }}</div>
+                                        @endif
+                                    </div>
                                 </div>
                             </td>
                             <td>{{ $salarie->entreprise->raison_sociale ?? 'N/A' }}</td>

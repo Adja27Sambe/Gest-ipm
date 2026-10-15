@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/reporting', [App\Http\Controllers\ReportingController::class, 'index'])->name('reporting.index');
+    Route::get('/dashboard', [App\Http\Controllers\ReportingController::class, 'index'])->name('dashboard');
 
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -96,10 +97,21 @@ Route::middleware('auth')->group(function () {
         Route::resource('conventions', ConventionWebController::class)->only(['store', 'update', 'destroy']);
     });
 
-    // Gestion des Prestations (et Devis)
+    // Gestion des Prestations (et Facturation)
     Route::middleware('can:gerer_prestations')->group(function() {
         Route::get('prestations/export', [PrestationController::class, 'export'])->name('prestations.export');
         Route::resource('prestations', PrestationController::class);
+
+        // Facturation Pharmacie
+        Route::get('facturation/pharmacie', [App\Http\Controllers\FacturationPharmacieController::class, 'index'])->name('facturation.pharmacie');
+        Route::post('facturation/pharmacie', [App\Http\Controllers\FacturationPharmacieController::class, 'store'])->name('facturation.pharmacie.store');
+
+        // Régularisations
+        Route::resource('regularisations', App\Http\Controllers\RegularisationController::class)->only(['index', 'store', 'show']);
+
+        // API Types d'actes pour la saisie dynamique de prestation
+        Route::get('api/types-actes', [App\Http\Controllers\ActeController::class, 'getTypesActes'])->name('api.types-actes');
+        Route::post('api/types-actes', [App\Http\Controllers\ActeController::class, 'storeTypeActe'])->name('api.types-actes.store');
     });
 
     // Dossier Médical
@@ -136,8 +148,11 @@ Route::middleware('auth')->group(function () {
         Route::get('audit/export', [App\Http\Controllers\AuditController::class, 'export'])->name('audit.export');
     });
 
-    // Paramètres de Couverture
-    Route::resource('parametres-couverture', App\Http\Controllers\ParametreCouvertureController::class)->except(['show'])->middleware('can:gerer_parametres_couverture');
+    // Paramètres de Couverture & Actes
+    Route::middleware('can:gerer_parametres_couverture')->group(function() {
+        Route::resource('parametres-couverture', App\Http\Controllers\ParametreCouvertureController::class)->except(['show']);
+        Route::resource('actes', App\Http\Controllers\ActeController::class);
+    });
 
     // Module Frais Médicaux (Adhérents & Participants)
     Route::middleware('can:voir_audit')->group(function() {

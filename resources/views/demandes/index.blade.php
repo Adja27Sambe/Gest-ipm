@@ -310,13 +310,19 @@
 
                         <!-- Champs spécifiques Bon de Commande -->
                         <div class="col-md-6 dynamic-field" id="field_date_ordonnance" style="display: none;">
-                            <label class="form-label fw-medium text-muted small mb-1">Date de l'ordonnance *</label>
-                            <input type="date" name="date_ordonnance" id="date_ordonnance_input" class="form-control" max="{{ date('Y-m-d') }}" min="{{ now()->subMonths(6)->toDateString() }}">
-                            <div class="form-text small text-muted">Ordonnance valide (max 6 mois)</div>
+                            <label class="form-label fw-medium text-muted small mb-1">Nom de l'ordonnateur</label>
+                            <input type="text" name="nom_ordonnateur" id="nom_ordonnateur_input" class="form-control" placeholder="Dr. Prénom Nom (Prescripteur)">
+                            <div class="form-text small text-muted">Professionnel prescripteur</div>
                         </div>
                         <div class="col-md-6 dynamic-field" id="field_nombre_articles" style="display: none;">
                             <label class="form-label fw-medium text-muted small mb-1">Nombre d'articles autorisés *</label>
                             <input type="number" name="nombre_articles" id="nombre_articles_input" class="form-control" value="1" min="1" max="20">
+                        </div>
+                        <div class="col-md-6 dynamic-field" id="field_validite_info" style="display: none;">
+                            <label class="form-label fw-medium text-muted small mb-1">Validité de la prise en charge</label>
+                            <div class="form-control bg-light text-muted small">
+                                <i class="bi bi-calendar-check text-success me-1"></i> Fin de mois ({{ now()->endOfMonth()->format('d/m/Y') }})
+                            </div>
                         </div>
 
                         <!-- Champ spécifique Lettre de Garantie -->
@@ -353,6 +359,21 @@
                         <div class="col-12 dynamic-field" id="field_diagnostic" style="display: none;">
                             <label class="form-label fw-medium text-muted small mb-1">Diagnostic (Feuille de Maladie)</label>
                             <textarea name="diagnostic" class="form-control" rows="2" placeholder="Diagnostic ou motif clinique..."></textarea>
+                        </div>
+
+                        <!-- Option Sous Couvert -->
+                        <div class="col-12 mt-2">
+                            <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                                <div>
+                                    <label class="form-check-label fw-bold text-dark mb-0 d-block" for="modal_sous_couvert">
+                                        <i class="bi bi-shield-fill-check text-primary me-1"></i> Option « Sous couvert » (100% IPM)
+                                    </label>
+                                    <small class="text-muted">Part IPM = 100%, Part participant = 0%</small>
+                                </div>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input fs-5" type="checkbox" name="sous_couvert" value="1" id="modal_sous_couvert">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -421,19 +442,20 @@
         
         document.getElementById('field_date_ordonnance').style.display = isBon ? 'block' : 'none';
         document.getElementById('field_nombre_articles').style.display = isBon ? 'block' : 'none';
+        if (document.getElementById('field_validite_info')) {
+            document.getElementById('field_validite_info').style.display = isBon ? 'block' : 'none';
+        }
         
         document.getElementById('field_choix_acte').style.display = isLettre ? 'block' : 'none';
 
-        // Validation stricte : Pharmacie pour BC, Praticien pour FM/LG
+        // Validation : Pharmacie pour BC, Praticien pour FM/LG
         const pharmacieSelect = document.getElementById('pharmacie_select');
         const praticienSelect = document.getElementById('praticien_select');
-        const dateInput = document.getElementById('date_ordonnance_input');
         const nbInput = document.getElementById('nombre_articles_input');
 
         if (isBon) {
             document.getElementById('field_pharmacie').style.display = 'block';
             pharmacieSelect.setAttribute('required', 'required');
-            dateInput.setAttribute('required', 'required');
             nbInput.setAttribute('required', 'required');
             
             document.getElementById('field_praticien').style.display = 'none';

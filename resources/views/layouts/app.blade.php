@@ -398,8 +398,17 @@
                     </a>
                     @endcan
                     @can('gerer_prestations')
-                    <a href="{{ route('prestations.index') }}" class="sidebar-link {{ request()->routeIs('prestations.*') ? 'active' : '' }}">
-                        <i class="bi bi-receipt"></i> Facturation
+                    <div class="sidebar-heading px-3 pt-2 pb-1 text-uppercase fw-bold text-muted" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-receipt me-1"></i> Facturation
+                    </div>
+                    <a href="{{ route('prestations.index') }}" class="sidebar-link {{ request()->routeIs('prestations.*') ? 'active' : '' }}" style="padding-left: 1.8rem;">
+                        <i class="bi bi-file-earmark-medical"></i> Saisie Prestation
+                    </a>
+                    <a href="{{ route('facturation.pharmacie') }}" class="sidebar-link {{ request()->routeIs('facturation.pharmacie*') ? 'active' : '' }}" style="padding-left: 1.8rem;">
+                        <i class="bi bi-capsule"></i> Pharmacie
+                    </a>
+                    <a href="{{ route('regularisations.index') }}" class="sidebar-link {{ request()->routeIs('regularisations.*') ? 'active' : '' }}" style="padding-left: 1.8rem;">
+                        <i class="bi bi-arrow-repeat"></i> Régularisation
                     </a>
                     @endcan
                     @can('gerer_cotisations')
@@ -452,8 +461,11 @@
                     </a>
                     @endcan
                     @can('gerer_parametres_couverture')
+                    <a href="{{ route('actes.index') }}" class="sidebar-link {{ request()->routeIs('actes.*') ? 'active' : '' }}">
+                        <i class="bi bi-diagram-3"></i> Actes & Types d'actes
+                    </a>
                     <a href="{{ route('parametres-couverture.index') }}" class="sidebar-link {{ request()->routeIs('parametres-couverture.*') ? 'active' : '' }}">
-                        <i class="bi bi-sliders"></i> Couvertures
+                        <i class="bi bi-sliders"></i> Couvertures & Taux
                     </a>
                     @endcan
                 @endauth

@@ -29,12 +29,12 @@ class Prestation extends Model
 
     public function praticien()
     {
-        return $this->belongsTo(Praticien::class, 'id_praticien', 'id_praticien');
+        return $this->belongsTo(Praticien::class, 'id_praticien', 'PRCLEUNIK');
     }
 
     public function pharmacie()
     {
-        return $this->belongsTo(Pharmacie::class, 'id_pharmacie', 'id_pharmacie');
+        return $this->belongsTo(Pharmacie::class, 'id_pharmacie', 'PHCLEUNIK');
     }
 
     public function getPartenaireAttribute()

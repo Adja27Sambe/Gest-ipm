@@ -69,27 +69,28 @@ class EntrepriseController extends Controller
 
     public function getNextMatricule(Entreprise $entreprise)
     {
-        if (empty($entreprise->code_adherent)) {
+        if (empty($entreprise->code_adherent) && empty($entreprise->prefixe)) {
             return response()->json(['matricule' => '']);
         }
         
-        // Chercher le plus grand numéro parmi tous les matricules (en ignorant les lettres)
-        // Retirer les préfixes pour obtenir le code propre (ex: 004)
-        $codeAdherent = preg_replace('/^(ADH|ENT|MAT)-?/i', '', $entreprise->code_adherent);
-        $originalCode = $entreprise->code_adherent;
+        // Retirer les préfixes pour obtenir le code propre ou utiliser le préfixe configuré
+        $codeAdherent = !empty($entreprise->prefixe)
+            ? trim($entreprise->prefixe)
+            : preg_replace('/^(ADH|ENT|MAT)-?/i', '', $entreprise->code_adherent);
+        $originalCode = $entreprise->code_adherent ?? $codeAdherent;
         
         $maxNumber = \App\Models\Salarie::where('IDADHERANT', $entreprise->id_entreprise)
             ->whereNotNull('MATRICULE')
             ->pluck('MATRICULE')
             ->map(function ($m) use ($codeAdherent, $originalCode) {
-                // Enlever le code entreprise du début s'il est présent (l'ancien ou le nouveau format)
-                $compteurStr = preg_replace('/^(' . preg_quote($originalCode, '/') . '|' . preg_quote($codeAdherent, '/') . ')/i', '', $m);
+                // Enlever le code entreprise ou préfixe du début s'il est présent
+                $compteurStr = preg_replace('/^(' . preg_quote((string)$originalCode, '/') . '|' . preg_quote((string)$codeAdherent, '/') . ')/i', '', $m);
                 // Extraire uniquement le numéro de séquence
                 return intval(preg_replace('/[^0-9]/', '', $compteurStr));
             })
             ->max() ?? 0;
         
-        // Nouveau matricule : code entreprise (sans ENT) + compteur sur 4 chiffres
+        // Nouveau matricule : préfixe / code entreprise + compteur sur 4 chiffres
         $matricule = $codeAdherent . str_pad($maxNumber + 1, 4, '0', STR_PAD_LEFT);
 
         return response()->json(['matricule' => $matricule]);

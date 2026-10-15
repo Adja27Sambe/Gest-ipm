@@ -68,22 +68,19 @@
     <div class="section-title">Informations du Bénéficiaire</div>
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #ddd;">
         <tr>
-            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 28%; background-color: #f8f9fa; vertical-align: middle;">
+            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 35%; background-color: #f8f9fa; vertical-align: middle;">
                 <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Matricule Participant</span>
                 <span style="font-size: 18px; font-weight: bold; color: #0056b3; letter-spacing: 1px;">{{ $demande->salarie->matricule ?? 'N/A' }}</span>
             </td>
-            <td style="padding: 12px 15px; border-right: 1px solid #ddd; width: 38%; vertical-align: middle;">
+            <td style="padding: 12px 15px; width: 65%; vertical-align: middle;">
                 <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Patient concerné</span>
                 @if($demande->ayantDroit)
                     <strong style="font-size: 14px;">{{ $demande->ayantDroit->prenom }} {{ $demande->ayantDroit->nom }}</strong><br>
                     <span style="font-size: 11px; color: #666;">(Ayant-droit ({{ $demande->ayantDroit->lien_parente ?? 'N/A' }}) de {{ $demande->salarie->prenom }} {{ $demande->salarie->nom }})</span>
                 @else
                     <strong style="font-size: 14px;">{{ $demande->salarie->prenom }} {{ $demande->salarie->nom }}</strong>
+                    <span style="font-size: 11px; color: #666;">&nbsp;(Participant assuré)</span>
                 @endif
-            </td>
-            <td style="padding: 12px 15px; width: 34%; vertical-align: middle;">
-                <span style="font-size: 10px; color: #888; display: block; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Entreprise</span>
-                <strong style="font-size: 13px;">{{ $demande->salarie->entreprise->raison_sociale ?? 'Non spécifiée' }}</strong>
             </td>
         </tr>
     </table>
@@ -95,8 +92,8 @@
             <td><strong>{{ $demande->pharmacie->nom ?? 'Non spécifié' }}</strong></td>
         </tr>
         <tr>
-            <th>Date de l'ordonnance</th>
-            <td>{{ $demande->bonCommande->date_ordonnance ? \Carbon\Carbon::parse($demande->bonCommande->date_ordonnance)->format('d/m/Y') : 'Non spécifiée' }}</td>
+            <th>Nom de l'ordonnateur</th>
+            <td><strong>{{ $demande->bonCommande->nom_ordonnateur ?? 'Médecin prescripteur' }}</strong></td>
         </tr>
         <tr>
             <th>Nombre d'articles prescrits</th>
