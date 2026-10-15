@@ -90,7 +90,7 @@ class CotisationController extends Controller
             ]);
         } else {
             $request->validate([
-                'id_salarie' => 'required|exists:salarie,id_salarie',
+                'id_salarie' => 'required|exists:PARTICIPANT,IDPARTICIPANT',
                 'salaire_base' => 'required|numeric|min:0',
             ]);
 

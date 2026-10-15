@@ -70,7 +70,7 @@ class PrestationApiController extends Controller
     public function history(Request $request)
     {
         $request->validate([
-            'id_salarie' => 'nullable|exists:salarie,IDPARTICIPANT',
+            'id_salarie' => 'nullable|exists:PARTICIPANT,IDPARTICIPANT',
             'id_ayant_droit' => 'nullable|exists:ayant_droit,id_ayant_droit',
         ]);
 

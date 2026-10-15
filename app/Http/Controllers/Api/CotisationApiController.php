@@ -15,7 +15,7 @@ class CotisationApiController extends Controller
     public function statut(Request $request)
     {
         $request->validate([
-            'id_salarie' => 'nullable|exists:salarie,PACLEUNIK',
+            'id_salarie' => 'nullable|exists:PARTICIPANT,IDPARTICIPANT',
             'periode' => 'nullable|string', // ex: 2023-10
         ]);
 

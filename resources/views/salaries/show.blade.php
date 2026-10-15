@@ -248,7 +248,7 @@
         <div class="modal-content border-0 shadow rounded-4">
             <form action="{{ route('ayants-droit.store', $salarie) }}" method="POST" enctype="multipart/form-data">
                 @csrf
-                <input type="hidden" name="id_salarie" value="{{ $salarie->id_salarie }}">
+                <input type="hidden" name="id_salarie" value="{{ $salarie->id_salarie ?? $salarie->IDPARTICIPANT ?? $salarie->getKey() }}">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title text-primary" id="addAyantDroitModalLabel">Ajouter un Ayant Droit</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
