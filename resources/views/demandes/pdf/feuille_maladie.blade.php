@@ -13,7 +13,8 @@
 <body>
     <div class="header">
         <h1>Feuille de Maladie</h1>
-        <p>Date d'émission: {{ $feuilleMaladie->date_emission }}</p>
+        <p>Date d'émission: {{ $feuilleMaladie->date_emission ? \Carbon\Carbon::parse($feuilleMaladie->date_emission)->format('d/m/Y') : date('d/m/Y') }}</p>
+        <p>Date limite de validité: {{ $demande->date_limite_validite ? \Carbon\Carbon::parse($demande->date_limite_validite)->format('d/m/Y') : 'Fin du mois' }}</p>
         <p>N° {{ $feuilleMaladie->numero_feuille }}</p>
     </div>
 

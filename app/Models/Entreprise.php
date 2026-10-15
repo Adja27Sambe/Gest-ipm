@@ -19,6 +19,10 @@ class Entreprise extends Model
     // Force le type de clé à string car INTERSEC utilise decimal(19,0)
     protected $keyType = 'int';
 
+    protected $casts = [
+        'DATE_ADHESION' => 'date',
+    ];
+
     /**
      * Mapping : attribut Laravel -> colonne INTERSEC
      */

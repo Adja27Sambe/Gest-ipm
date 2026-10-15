@@ -11,6 +11,21 @@ class CarteAssure extends Model
     protected $primaryKey = 'id_carte';
     protected $guarded = [];
 
+    protected $casts = [
+        'date_emission' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    protected static function booted()
+    {
+        static::creating(function ($carte) {
+            if (empty($carte->date_emission)) {
+                $carte->date_emission = \Carbon\Carbon::now()->toDateString();
+            }
+        });
+    }
+
     // Constantes de statut
     public const STATUT_ACTIF = 'actif';
     public const STATUT_ANNULEE = 'annulée';

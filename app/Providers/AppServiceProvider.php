@@ -44,6 +44,43 @@ class AppServiceProvider extends ServiceProvider
             UpdateAyantDroitStatut::class,
         );
 
+        // --- Configuration Régionale Date & Heure (Sénégal / Dakar) ---
+        date_default_timezone_set(config('app.timezone', 'Africa/Dakar'));
+        \Carbon\Carbon::setLocale(config('app.locale', 'fr'));
+        \Illuminate\Support\Carbon::setLocale(config('app.locale', 'fr'));
+        setlocale(LC_TIME, 'fr_FR.utf8', 'fr_FR.UTF-8', 'fr_FR', 'fra_fra', 'fr', 'fr_FR@euro');
+
+        // Macros Carbon pratiques
+        \Illuminate\Support\Carbon::macro('formatFr', function () {
+            /** @var \Illuminate\Support\Carbon $this */
+            return $this->format('d/m/Y');
+        });
+        \Illuminate\Support\Carbon::macro('formatDateTimeFr', function () {
+            /** @var \Illuminate\Support\Carbon $this */
+            return $this->format('d/m/Y à H:i');
+        });
+
+        // Directives Blade pour l'affichage uniforme des dates & heures
+        \Illuminate\Support\Facades\Blade::directive('formatDate', function ($expression) {
+            return "<?php echo ($expression) ? \\Carbon\\Carbon::parse($expression)->format('d/m/Y') : '-'; ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('formatDateTime', function ($expression) {
+            return "<?php echo ($expression) ? \\Carbon\\Carbon::parse($expression)->format('d/m/Y à H:i') : '-'; ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('formatHeure', function ($expression) {
+            return "<?php echo ($expression) ? \\Carbon\\Carbon::parse($expression)->format('H:i') : '-'; ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('diffForHumans', function ($expression) {
+            return "<?php echo ($expression) ? \\Carbon\\Carbon::parse($expression)->locale('fr')->diffForHumans() : '-'; ?>";
+        });
+
+        \Illuminate\Support\Facades\Blade::directive('dateLettres', function ($expression) {
+            return "<?php echo ($expression) ? \\Carbon\\Carbon::parse($expression)->locale('fr')->translatedFormat('d F Y') : '-'; ?>";
+        });
+
         // --- Directives Blade pour la distinction Lecteur / Éditeur ---
         \Illuminate\Support\Facades\Blade::if('canedit', function () {
             return auth()->check() && auth()->user()->canEdit();

@@ -11,6 +11,9 @@ class PrestationObserver
      */
     public function creating(Prestation $prestation): void
     {
+        if (empty($prestation->date_prestation)) {
+            $prestation->date_prestation = \Carbon\Carbon::now()->toDateString();
+        }
         $this->calculerResteACharge($prestation);
     }
 

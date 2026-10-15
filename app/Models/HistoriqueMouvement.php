@@ -13,7 +13,18 @@ class HistoriqueMouvement extends Model
     
     protected $casts = [
         'date_heure' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($historique) {
+            if (empty($historique->date_heure)) {
+                $historique->date_heure = \Carbon\Carbon::now();
+            }
+        });
+    }
 
     public function utilisateur()
     {

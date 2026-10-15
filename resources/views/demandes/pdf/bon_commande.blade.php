@@ -13,7 +13,7 @@
 <body>
     <div class="header">
         <h1>Bon de Commande</h1>
-        <p>Date d'émission: {{ $bonCommande->date_emission }}</p>
+        <p>Date d'émission: {{ $bonCommande->date_emission ? \Carbon\Carbon::parse($bonCommande->date_emission)->format('d/m/Y') : date('d/m/Y') }}</p>
         <p>N° {{ $bonCommande->numero_bon }}</p>
     </div>
 
@@ -39,7 +39,7 @@
             </tr>
             <tr>
                 <th>Date de la demande :</th>
-                <td>{{ $demande->date_demande }}</td>
+                <td>{{ $demande->date_demande ? \Carbon\Carbon::parse($demande->date_demande)->format('d/m/Y') : date('d/m/Y') }}</td>
             </tr>
             <tr>
                 <th>Nombre d'articles :</th>
@@ -49,6 +49,7 @@
     </div>
 
     <div class="footer">
+        <p>Validité du bon: {{ $bonCommande->date_validite ? \Carbon\Carbon::parse($bonCommande->date_validite)->format('d/m/Y') : ($demande->date_limite_validite ? \Carbon\Carbon::parse($demande->date_limite_validite)->format('d/m/Y') : 'Fin du mois') }}</p>
         <p>Signature & Cachet de l'IPM</p>
     </div>
 </body>

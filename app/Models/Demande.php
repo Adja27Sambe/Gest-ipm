@@ -14,7 +14,26 @@ class Demande extends Model
 
     protected $casts = [
         'date_demande' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
+
+    /**
+     * Accesseur calculé pour la date limite de validité
+     */
+    public function getDateLimiteValiditeAttribute()
+    {
+        if ($this->bonCommande && $this->bonCommande->date_validite) {
+            return $this->bonCommande->date_validite;
+        }
+        if ($this->lettreGarantie && $this->lettreGarantie->date_validite) {
+            return $this->lettreGarantie->date_validite;
+        }
+        if ($this->date_demande) {
+            return \Carbon\Carbon::parse($this->date_demande)->endOfMonth();
+        }
+        return \Carbon\Carbon::now()->endOfMonth();
+    }
 
     // Constantes pour les types de demandes (à adapter si vous utilisez id_type_demande ou un slug)
     public const TYPE_BON_COMMANDE = 'bon_commande';

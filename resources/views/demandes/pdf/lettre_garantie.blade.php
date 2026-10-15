@@ -13,7 +13,7 @@
 <body>
     <div class="header">
         <h1>Lettre de Garantie</h1>
-        <p>Date d'émission: {{ $lettreGarantie->date_emission }}</p>
+        <p>Date d'émission: {{ $lettreGarantie->date_emission ? \Carbon\Carbon::parse($lettreGarantie->date_emission)->format('d/m/Y') : date('d/m/Y') }}</p>
         <p>N° {{ $lettreGarantie->numero_lettre }}</p>
     </div>
 
@@ -28,7 +28,7 @@
                 <td>
                     @if($demande->ayantDroit)
                         {{ $demande->ayantDroit->nom }} {{ $demande->ayantDroit->prenom }} 
-                        (Né(e) le: {{ $demande->ayantDroit->date_naissance ?? 'N/A' }})
+                        (Né(e) le: {{ $demande->ayantDroit->date_naissance ? \Carbon\Carbon::parse($demande->ayantDroit->date_naissance)->format('d/m/Y') : 'N/A' }})
                     @else
                         Lui-même
                     @endif
@@ -46,7 +46,7 @@
     </div>
 
     <div class="footer">
-        <p>Validité de la lettre: {{ $lettreGarantie->date_validite ?? 'Non définie' }}</p>
+        <p>Validité de la lettre: {{ $lettreGarantie->date_validite ? \Carbon\Carbon::parse($lettreGarantie->date_validite)->format('d/m/Y') : ($demande->date_limite_validite ? \Carbon\Carbon::parse($demande->date_limite_validite)->format('d/m/Y') : 'Fin du mois') }}</p>
         <p>Signature & Cachet de l'IPM</p>
     </div>
 </body>

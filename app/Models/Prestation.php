@@ -20,6 +20,8 @@ class Prestation extends Model
         'taux_prise_charge' => 'decimal:2',
         'reste_a_charge' => 'decimal:2',
         'details_articles' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function typePrestation()

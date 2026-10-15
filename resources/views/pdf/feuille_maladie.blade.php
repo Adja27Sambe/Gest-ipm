@@ -54,8 +54,8 @@
                 </div>
             </td>
             <td class="company-info">
-                Date d'émission : <strong>{{ \Carbon\Carbon::parse($demande->date_demande)->format('d/m/Y') }}</strong><br>
-                Date limite de Validité : <strong>{{ $demande->feuilleMaladie->date_validite ? \Carbon\Carbon::parse($demande->feuilleMaladie->date_validite)->format('d/m/Y') : 'N/A' }}</strong><br>
+                Date d'émission : <strong>{{ $demande->date_demande ? \Carbon\Carbon::parse($demande->date_demande)->format('d/m/Y') : date('d/m/Y') }}</strong><br>
+                Date limite de Validité : <strong>{{ $demande->date_limite_validite ? \Carbon\Carbon::parse($demande->date_limite_validite)->format('d/m/Y') : 'Fin du mois' }}</strong><br>
             </td>
         </tr>
     </table>

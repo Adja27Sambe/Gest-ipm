@@ -24,6 +24,14 @@ class Salarie extends Authenticatable
         'code_securite',
     ];
 
+    protected $casts = [
+        'Date_Naissance'       => 'date',
+        'DATEDEPOT'            => 'date',
+        'DATE_IMMATRICULATION' => 'date',
+        'Date_Affectation'     => 'date',
+        'Date_Entree'          => 'date',
+    ];
+
     /**
      * Mapping : attribut Laravel -> colonne INTERSEC
      */

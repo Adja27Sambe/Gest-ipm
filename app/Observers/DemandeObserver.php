@@ -8,6 +8,16 @@ use Illuminate\Support\Facades\Log;
 class DemandeObserver
 {
     /**
+     * Handle the Demande "creating" event.
+     */
+    public function creating(Demande $demande): void
+    {
+        if (empty($demande->date_demande)) {
+            $demande->date_demande = \Carbon\Carbon::now();
+        }
+    }
+
+    /**
      * Handle the Demande "created" event.
      */
     public function created(Demande $demande): void

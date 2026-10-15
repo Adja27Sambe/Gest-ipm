@@ -12,6 +12,12 @@ class AyantDroit extends Model
     protected $primaryKey = 'id_ayant_droit';
     protected $guarded = [];
 
+    protected $casts = [
+        'date_naissance' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     public function salarie(): BelongsTo
     {
         return $this->belongsTo(Salarie::class, 'id_salarie', 'IDPARTICIPANT');

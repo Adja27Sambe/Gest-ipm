@@ -15,6 +15,10 @@ class Cotisation extends Model
     protected $guarded = [];
     protected $keyType = 'int';
 
+    protected $casts = [
+        'DATECOTISE' => 'date',
+    ];
+
     protected $columnMap = [
         'id'                => 'COCLEUNIK',
         'id_cotisation'     => 'COCLEUNIK',

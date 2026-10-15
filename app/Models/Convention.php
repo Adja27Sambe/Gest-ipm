@@ -13,6 +13,13 @@ class Convention extends Model
     protected $primaryKey = 'id_convention';
     protected $guarded = [];
 
+    protected $casts = [
+        'date_debut' => 'date',
+        'date_fin' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
     public function prestataire()
     {
         return $this->belongsTo(Prestataire::class, 'id_prestataire');

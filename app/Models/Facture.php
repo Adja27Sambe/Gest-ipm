@@ -18,7 +18,18 @@ class Facture extends Model
     protected $casts = [
         'date_facture' => 'date',
         'montant' => 'decimal:2',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($facture) {
+            if (empty($facture->date_facture)) {
+                $facture->date_facture = \Carbon\Carbon::now()->toDateString();
+            }
+        });
+    }
 
     public function praticien(): BelongsTo
     {

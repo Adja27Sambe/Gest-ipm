@@ -17,6 +17,10 @@ class Praticien extends Model
     protected $guarded = [];
     protected $keyType = 'int';
 
+    protected $casts = [
+        'DATE_ENREGISTREMENT' => 'date',
+    ];
+
     protected static function booted()
     {
         static::creating(function ($praticien) {
