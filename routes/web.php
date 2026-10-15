@@ -175,11 +175,12 @@ Route::middleware('auth')->group(function () {
         Route::delete('pieces-jointes/{pieceJointe}', [App\Http\Controllers\PieceJointeController::class, 'destroy'])->name('pieces-jointes.destroy');
     });
 
-    // Gestion des Médias
-    Route::middleware('can:gerer_medias')->group(function() {
+    // Gestion des Médias et Documents (Centre Unifié)
+    Route::middleware('can:gerer_medias_ou_documents')->group(function() {
         Route::get('medias', [App\Http\Controllers\MediaController::class, 'index'])->name('medias.index');
         Route::post('medias', [App\Http\Controllers\MediaController::class, 'store'])->name('medias.store');
         Route::post('medias/sync-all-cloud', [App\Http\Controllers\MediaController::class, 'syncAllCloud'])->name('medias.sync-all-cloud');
+        Route::post('medias/sync-everything', [App\Http\Controllers\MediaController::class, 'syncEverything'])->name('medias.sync-everything');
         Route::post('medias/{media}/sync-cloud', [App\Http\Controllers\MediaController::class, 'syncCloud'])->name('medias.sync-cloud');
         Route::delete('medias/{media}', [App\Http\Controllers\MediaController::class, 'destroy'])->name('medias.destroy');
     });

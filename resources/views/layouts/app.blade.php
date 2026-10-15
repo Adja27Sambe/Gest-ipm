@@ -434,16 +434,21 @@
                         <i class="bi bi-heart-pulse"></i> Historique demande
                     </a>
                     @endcan
-                    @can('gerer_pieces_jointes')
-                    <a href="{{ route('pieces-jointes.index') }}" class="sidebar-link {{ request()->routeIs('pieces-jointes.*') ? 'active' : '' }}">
-                        <i class="bi bi-folder2-open"></i> Documents
-                    </a>
-                    @endcan
+                    @if(auth()->user()->can('gerer_medias') || auth()->user()->can('gerer_pieces_jointes'))
+                    <div class="sidebar-heading px-3 pt-2 pb-1 text-uppercase fw-bold text-muted" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-collection-play me-1"></i> Médias & Documents
+                    </div>
                     @can('gerer_medias')
-                    <a href="{{ route('medias.index') }}" class="sidebar-link {{ request()->routeIs('medias.*') ? 'active' : '' }}">
-                        <i class="bi bi-images"></i> Médias
+                    <a href="{{ route('medias.index', ['tab' => 'medias']) }}" class="sidebar-link {{ (request()->routeIs('medias.*') && request('tab', 'medias') == 'medias') ? 'active' : '' }}" style="padding-left: 1.8rem;">
+                        <i class="bi bi-images"></i> Médiathèque
                     </a>
                     @endcan
+                    @can('gerer_pieces_jointes')
+                    <a href="{{ route('medias.index', ['tab' => 'documents']) }}" class="sidebar-link {{ request()->routeIs('pieces-jointes.*') || (request()->routeIs('medias.*') && request('tab') == 'documents') ? 'active' : '' }}" style="padding-left: 1.8rem;">
+                        <i class="bi bi-folder2-open"></i> Documents & GED
+                    </a>
+                    @endcan
+                    @endif
                     
                     <hr class="text-secondary opacity-25 my-3">
                     

@@ -23,68 +23,43 @@ class PieceJointeController extends Controller
     }
 
     /**
-     * Tableau de bord global de la gestion documentaire
+     * Tableau de bord global de la gestion documentaire (intégré dans le module Médias)
      */
     public function index(Request $request)
     {
-        $query = PieceJointe::with(['categorie', 'utilisateur', 'attachable'])->latest('date_ajout');
-
-        if ($request->filled('id_categorie')) {
-            $query->where('id_categorie', $request->id_categorie);
-        }
-
-        if ($request->filled('cloud_synced')) {
-            $query->where('cloud_synced', $request->boolean('cloud_synced'));
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->where('nom_fichier', 'like', "%{$search}%")
-                  ->orWhereHas('utilisateur', function($uq) use ($search) {
-                      $uq->where('login', 'like', "%{$search}%")
-                         ->orWhere('nom', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $perPage = $request->input('per_page', 5);
-        $pieces = $query->paginate($perPage)->withQueryString();
-        $categories = CategorieDocument::orderBy('libelle')->get();
-        $cloudStats = $this->cloudBackup->getSyncStats();
-
-        return view('pieces-jointes.index', compact('pieces', 'categories', 'cloudStats'));
+        return app(\App\Http\Controllers\MediaController::class)->index($request->merge(['tab' => 'documents']));
     }
 
     /**
-     * Uploader une nouvelle pièce jointe et l'attacher à une entité existante.
+     * Uploader une nouvelle pièce jointe et l'attacher à une entité existante ou document général.
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'fichier' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // max 10 Mo
+            'fichier' => 'required|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx|max:20480', // max 20 Mo
             'id_categorie' => 'required|exists:categorie_document,id_categorie',
-            'attachable_type' => 'required|string',
-            'attachable_id' => 'required|integer'
+            'attachable_type' => 'nullable|string',
+            'attachable_id' => 'nullable|integer'
         ]);
 
-        // Vérifier que le type cible est autorisé et existe
-        $allowedTypes = [
-            'App\Models\Demande',
-            'App\Models\Prestation',
-            'App\Models\Salarie',
-            'App\Models\Entreprise'
-        ];
+        if (!empty($validated['attachable_type'])) {
+            $allowedTypes = [
+                'App\Models\Demande',
+                'App\Models\Prestation',
+                'App\Models\Salarie',
+                'App\Models\Entreprise'
+            ];
 
-        if (!in_array($validated['attachable_type'], $allowedTypes)) {
-            return back()->with('error', 'Type d\'entité non autorisé pour les pièces jointes.');
-        }
+            if (!in_array($validated['attachable_type'], $allowedTypes)) {
+                return back()->with('error', 'Type d\'entité non autorisé pour les pièces jointes.');
+            }
 
-        $entityClass = $validated['attachable_type'];
-        $entity = $entityClass::find($validated['attachable_id']);
+            $entityClass = $validated['attachable_type'];
+            $entity = $entityClass::find($validated['attachable_id']);
 
-        if (!$entity) {
-            return back()->with('error', 'L\'entité parente est introuvable.');
+            if (!$entity) {
+                return back()->with('error', 'L\'entité parente est introuvable.');
+            }
         }
 
         $file = $request->file('fichier');

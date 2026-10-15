@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Media;
+use App\Models\PieceJointe;
+use App\Models\CategorieDocument;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
@@ -19,30 +21,68 @@ class MediaController extends Controller
     }
 
     /**
-     * Affiche la galerie de médias
+     * Affiche le centre unifié Médias & Documents
      */
     public function index(Request $request)
     {
-        $query = Media::with('utilisateur')->latest('id_media');
+        $activeTab = $request->input('tab', 'medias');
 
-        if ($request->filled('search')) {
+        // 1. Médias (Galerie & Fichiers visuels)
+        $mediaQuery = Media::with('utilisateur')->latest('id_media');
+
+        if ($request->filled('search') && $activeTab === 'medias') {
             $search = $request->input('search');
-            $query->where(function($q) use ($search) {
+            $mediaQuery->where(function($q) use ($search) {
                 $q->where('titre', 'like', "%{$search}%")
                   ->orWhere('nom_fichier_original', 'like', "%{$search}%")
                   ->orWhere('type_mime', 'like', "%{$search}%");
             });
         }
 
-        if ($request->filled('cloud_synced')) {
-            $query->where('cloud_synced', $request->boolean('cloud_synced'));
+        if ($request->filled('cloud_synced') && $activeTab === 'medias') {
+            $mediaQuery->where('cloud_synced', $request->boolean('cloud_synced'));
         }
 
-        $perPage = $request->input('per_page', 5);
-        $medias = $query->paginate($perPage)->withQueryString();
+        $mediaPerPage = $request->input('per_page', 8);
+        $medias = $mediaQuery->paginate($mediaPerPage, ['*'], 'medias_page')->withQueryString();
+
+        // 2. Documents (Pièces Jointes & GED)
+        $docQuery = PieceJointe::with(['categorie', 'utilisateur', 'attachable'])->latest('date_ajout');
+
+        if ($request->filled('id_categorie')) {
+            $docQuery->where('id_categorie', $request->id_categorie);
+        }
+
+        if ($request->filled('cloud_synced') && $activeTab === 'documents') {
+            $docQuery->where('cloud_synced', $request->boolean('cloud_synced'));
+        } elseif ($request->filled('doc_cloud_synced')) {
+            $docQuery->where('cloud_synced', $request->boolean('doc_cloud_synced'));
+        }
+
+        $docSearch = null;
+        if ($activeTab === 'documents' && $request->filled('search')) {
+            $docSearch = $request->input('search');
+        } elseif ($request->filled('doc_search')) {
+            $docSearch = $request->input('doc_search');
+        }
+
+        if ($docSearch) {
+            $docQuery->where(function($q) use ($docSearch) {
+                $q->where('nom_fichier', 'like', "%{$docSearch}%")
+                  ->orWhereHas('utilisateur', function($uq) use ($docSearch) {
+                      $uq->where('login', 'like', "%{$docSearch}%")
+                         ->orWhere('nom', 'like', "%{$docSearch}%");
+                  });
+            });
+        }
+
+        $docPerPage = $request->input('doc_per_page', $request->input('per_page', 10));
+        $pieces = $docQuery->paginate($docPerPage, ['*'], 'docs_page')->withQueryString();
+
+        $categories = CategorieDocument::orderBy('libelle')->get();
         $cloudStats = $this->cloudBackup->getSyncStats();
 
-        return view('medias.index', compact('medias', 'cloudStats'));
+        return view('medias.index', compact('medias', 'pieces', 'categories', 'cloudStats', 'activeTab'));
     }
 
     /**
@@ -93,6 +133,15 @@ class MediaController extends Controller
     {
         $result = $this->cloudBackup->backupAllMedias();
         return back()->with('success', "Synchronisation Cloud terminée : {$result['synced']} média(s) sauvegardé(s).");
+    }
+
+    /**
+     * Sauvegarde globale Cloud (Médias + Documents)
+     */
+    public function syncEverything(Request $request)
+    {
+        $result = $this->cloudBackup->backupAll($request->boolean('force'));
+        return back()->with('success', "Sauvegarde Cloud intégrale réussie : {$result['total_synced']} fichier(s) sauvegardé(s) (Médias + Documents).");
     }
 
     /**

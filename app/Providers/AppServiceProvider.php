@@ -130,6 +130,10 @@ class AppServiceProvider extends ServiceProvider
                 \Illuminate\Support\Facades\Gate::define('Gérer la facturation', function ($user) {
                     return $user->hasPermission('gerer_facturation') || $user->hasPermission('Gérer la facturation');
                 });
+
+                \Illuminate\Support\Facades\Gate::define('gerer_medias_ou_documents', function ($user) {
+                    return $user->hasPermission('gerer_medias') || $user->hasPermission('gerer_pieces_jointes');
+                });
             }
         } catch (\Exception $e) {
             // Silencieux si la BDD n'est pas encore prête
