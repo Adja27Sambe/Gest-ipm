@@ -223,8 +223,8 @@
                                         <th style="width: 130px;" class="text-center bg-primary bg-opacity-10 text-primary fw-bold border-start border-end col-quantite">
                                             <i class="bi bi-stack me-1"></i>Quantité <span class="text-danger">*</span>
                                         </th>
-                                        <th style="width: 220px;">Prix Unitaire (FCFA) <span class="text-danger">*</span></th>
-                                        <th class="text-end pe-3" style="width: 140px;">Total Ligne</th>
+                                        <th style="width: 200px;">Prix Unitaire (FCFA) <span class="text-danger">*</span></th>
+                                        <th class="text-end pe-3" style="width: 180px;">Total & Répartition</th>
                                         <th style="width: 50px;"></th>
                                     </tr>
                                 </thead>
@@ -416,13 +416,20 @@
 </div>
 
 <script>
-// Catalogue des actes disponibles avec leurs taux et tarifs de référence
+// Catalogue des actes disponibles avec leurs taux, montants référentiels et parts IPM de référence
 const AVAILABLE_ACTES = {!! json_encode($typesPrestation->map(function($t) {
+    $param = $t->parametreCouverture;
+    $ref = (float)($param->montant_referentiel ?? $param->ticket_moderateur ?? 0);
+    $taux = (float)($param->taux_prise_charge ?? 75);
+    $partIpmRef = (float)($param->part_ipm_reference ?? ($ref > 0 ? round(($ref * $taux) / 100, 2) : 0));
     return [
         'id' => $t->id_type_prestation,
         'libelle' => $t->libelle,
-        'taux' => (float)($t->parametreCouverture->taux_prise_charge ?? 75),
-        'pu' => (float)($t->parametreCouverture->plafond_par_acte ?? 0),
+        'taux' => $taux,
+        'montant_referentiel' => $ref,
+        'part_ipm_reference' => $partIpmRef,
+        'type_calcul' => $param->type_calcul ?? ($ref > 0 ? 'MONTANT_REFERENTIEL' : 'POURCENTAGE'),
+        'pu' => (float)($ref > 0 ? $ref : ($param->plafond_par_acte ?? 0)),
         'types_actes' => $t->typesActes ? $t->typesActes->pluck('libelle')->toArray() : [],
     ];
 })) !!};
@@ -485,7 +492,9 @@ function setupArticlesSection() {
                 nom: art.nom || '',
                 quantite: art.quantite || 1,
                 montant: art.montant || 0,
-                id_type_prestation: art.id_type_prestation || undefined
+                id_type_prestation: art.id_type_prestation || undefined,
+                part_ipm_reference: art.part_ipm_reference || undefined,
+                montant_referentiel: art.montant_referentiel || undefined
             });
         });
     } else {
@@ -580,9 +589,9 @@ function handleArticleActeSelect(selectEl) {
     const acteLibelle = selectedOpt.value;
     const acteTaux = parseFloat(selectedOpt.getAttribute('data-taux'));
     const acteId = parseInt(selectedOpt.getAttribute('data-id'));
+    const matched = AVAILABLE_ACTES.find(a => a.id === acteId);
 
     // Mettre à jour la datalist des types d'actes pour cette ligne
-    const matched = AVAILABLE_ACTES.find(a => a.id === acteId);
     const datalist = tr.querySelector('.article-datalist');
     if (datalist && matched && matched.types_actes) {
         datalist.innerHTML = matched.types_actes.map(ta => `<option value="${escapeHtml(ta)}"></option>`).join('');
@@ -599,11 +608,16 @@ function handleArticleActeSelect(selectEl) {
         }, 400);
     }
 
+    // Auto-remplir le prix unitaire si l'acte a un montant référentiel et que le champ est vide ou à 0
+    const puInput = tr.querySelector('.article-pu');
+    if (puInput && (!puInput.value || parseFloat(puInput.value) === 0) && matched && matched.montant_referentiel > 0) {
+        puInput.value = matched.montant_referentiel;
+    }
+
     // Auto-remplir le champ Taux (%) principal de la prestation
     const tauxInput = document.getElementById('taux_input');
     if (tauxInput && !isNaN(acteTaux)) {
         tauxInput.value = acteTaux;
-        // Animation de pulsation
         tauxInput.style.transition = 'all 0.35s ease';
         tauxInput.style.backgroundColor = '#dbeafe';
         tauxInput.style.color = '#1e40af';
@@ -615,10 +629,20 @@ function handleArticleActeSelect(selectEl) {
         }, 500);
     }
 
-    // Mettre à jour l'ID du type de prestation
+    // Mettre à jour les champs cachés de l'acte
     const idTypeInput = tr.querySelector('.article-id-type');
     if (idTypeInput && acteId) {
         idTypeInput.value = acteId;
+    }
+
+    const partIpmRefInput = tr.querySelector('.article-part-ipm-ref');
+    if (partIpmRefInput && matched) {
+        partIpmRefInput.value = matched.part_ipm_reference || 0;
+    }
+
+    const montantRefInput = tr.querySelector('.article-montant-ref');
+    if (montantRefInput && matched) {
+        montantRefInput.value = matched.montant_referentiel || 0;
     }
 
     updateArticleCalculations();
@@ -653,9 +677,12 @@ function addArticleRow(data = {}) {
 
     const montantVal = (data.montant !== undefined && data.montant !== null && data.montant !== '')
         ? data.montant
-        : 0;
+        : (matchedActe && matchedActe.montant_referentiel ? matchedActe.montant_referentiel : 0);
 
     const idTypeVal = data.id_type_prestation || (matchedActe ? matchedActe.id : '');
+    const partIpmRefVal = (matchedActe && matchedActe.part_ipm_reference) ? matchedActe.part_ipm_reference : (data.part_ipm_reference || 0);
+    const montantRefVal = (matchedActe && matchedActe.montant_referentiel) ? matchedActe.montant_referentiel : (data.montant_referentiel || 0);
+
     const tr = document.createElement('tr');
     const datalistId = `datalist_edit_actes_${rowIndex}_${Date.now()}`;
     const initialTypesActes = (matchedActe && matchedActe.types_actes) ? matchedActe.types_actes : [];
@@ -663,7 +690,8 @@ function addArticleRow(data = {}) {
 
     const optionsHtml = AVAILABLE_ACTES.map(a => {
         const isSelected = matchedActe && matchedActe.id === a.id;
-        return `<option value="${escapeHtml(a.libelle)}" data-taux="${a.taux}" data-id="${a.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(a.libelle)}</option>`;
+        const refBadge = a.part_ipm_reference > 0 ? ` (Fixe IPM: ${new Intl.NumberFormat('fr-FR').format(a.part_ipm_reference)} F)` : '';
+        return `<option value="${escapeHtml(a.libelle)}" data-taux="${a.taux}" data-id="${a.id}" data-ref="${a.montant_referentiel}" data-part-ipm-ref="${a.part_ipm_reference}" ${isSelected ? 'selected' : ''}>${escapeHtml(a.libelle)}${refBadge}</option>`;
     }).join('');
 
     tr.className = 'article-row';
@@ -691,6 +719,14 @@ function addArticleRow(data = {}) {
                        name="details_articles[${rowIndex}][id_type_prestation]" 
                        class="article-id-type" 
                        value="${idTypeVal}">
+                <input type="hidden" 
+                       name="details_articles[${rowIndex}][part_ipm_reference]" 
+                       class="article-part-ipm-ref" 
+                       value="${partIpmRefVal}">
+                <input type="hidden" 
+                       name="details_articles[${rowIndex}][montant_referentiel]" 
+                       class="article-montant-ref" 
+                       value="${montantRefVal}">
             </div>
         </td>
         <td class="text-center col-quantite" style="width: 130px; ${showQte ? '' : 'display: none;'}">
@@ -704,7 +740,7 @@ function addArticleRow(data = {}) {
                    required 
                    oninput="updateArticleCalculations()">
         </td>
-        <td style="width: 220px;">
+        <td style="width: 200px;">
             <div class="input-group input-group-sm">
                 <input type="number" 
                        step="1" 
@@ -718,8 +754,9 @@ function addArticleRow(data = {}) {
                 <span class="input-group-text bg-light text-muted fw-semibold">FCFA</span>
             </div>
         </td>
-        <td class="text-end pe-3 fw-bold text-dark article-line-total">
-            0 FCFA
+        <td class="text-end pe-3" style="width: 180px;">
+            <div class="fw-bold text-dark article-line-total">0 FCFA</div>
+            <div class="small article-line-breakdown" style="font-size: 0.74rem;">IPM: 0 F | Part: 0 F</div>
         </td>
         <td class="text-center">
             <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle" onclick="removeArticleRow(this)" title="Supprimer cet article">
@@ -752,6 +789,12 @@ function reindexArticles() {
         const idTypeInput = tr.querySelector('.article-id-type');
         if (idTypeInput) idTypeInput.name = `details_articles[${index}][id_type_prestation]`;
 
+        const partRef = tr.querySelector('.article-part-ipm-ref');
+        if (partRef) partRef.name = `details_articles[${index}][part_ipm_reference]`;
+
+        const mRef = tr.querySelector('.article-montant-ref');
+        if (mRef) mRef.name = `details_articles[${index}][montant_referentiel]`;
+
         const qteInput = tr.querySelector('.article-qte');
         if (qteInput) qteInput.name = `details_articles[${index}][quantite]`;
 
@@ -762,50 +805,131 @@ function reindexArticles() {
 
 function updateArticleCalculations() {
     let totalSum = 0;
+    let sumPartIpm = 0;
+    let sumPartPart = 0;
     const showQte = isQuantiteVisible();
     const rows = document.querySelectorAll('#articles_tbody tr');
+    const isSousCouvert = document.getElementById('edit_prestation_sous_couvert')?.checked;
 
     rows.forEach(tr => {
         const qte = showQte ? (parseFloat(tr.querySelector('.article-qte')?.value) || 1) : 1;
         const pu = parseFloat(tr.querySelector('.article-pu')?.value) || 0;
         const lineTotal = Math.round(qte * pu);
-
         totalSum += lineTotal;
+
+        const idType = parseInt(tr.querySelector('.article-id-type')?.value);
+        const matched = AVAILABLE_ACTES.find(a => a.id === idType);
+        const partIpmRefHidden = parseFloat(tr.querySelector('.article-part-ipm-ref')?.value || 0);
+        const partIpmRef = matched ? parseFloat(matched.part_ipm_reference || 0) : partIpmRefHidden;
+        const taux = matched ? parseFloat(matched.taux || 75) : (parseFloat(document.getElementById('taux_input')?.value) || 75);
+
+        let partIpmLine = 0;
+        let partPartLine = lineTotal;
+        let isFixe = false;
+
+        if (isSousCouvert) {
+            partIpmLine = lineTotal;
+            partPartLine = 0;
+        } else if (partIpmRef > 0) {
+            isFixe = true;
+            const partIpmRefTotal = Math.round(partIpmRef * qte);
+            if (lineTotal < partIpmRefTotal) {
+                // Règle de sécurité : si montant facturé < Part IPM de référence
+                partIpmLine = lineTotal;
+                partPartLine = 0;
+            } else {
+                partIpmLine = partIpmRefTotal;
+                partPartLine = lineTotal - partIpmLine;
+            }
+        } else {
+            partIpmLine = Math.round((lineTotal * taux) / 100);
+            partPartLine = Math.max(0, lineTotal - partIpmLine);
+        }
+
+        sumPartIpm += partIpmLine;
+        sumPartPart += partPartLine;
 
         const lineDisplay = tr.querySelector('.article-line-total');
         if (lineDisplay) {
             lineDisplay.textContent = formatFCFA(lineTotal);
+        }
+
+        const dispBreakdown = tr.querySelector('.article-line-breakdown');
+        if (dispBreakdown) {
+            if (isSousCouvert) {
+                dispBreakdown.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success py-0 px-1">100% IPM</span>`;
+            } else if (isFixe) {
+                dispBreakdown.innerHTML = `<span class="text-primary fw-bold" title="Part IPM de référence fixe">IPM: ${new Intl.NumberFormat('fr-FR').format(partIpmLine)} F</span> <span class="text-danger fw-semibold">| Part: ${new Intl.NumberFormat('fr-FR').format(partPartLine)} F</span>`;
+            } else {
+                dispBreakdown.innerHTML = `<span class="text-success">IPM: ${new Intl.NumberFormat('fr-FR').format(partIpmLine)} F</span> <span class="text-danger">| Part: ${new Intl.NumberFormat('fr-FR').format(partPartLine)} F</span>`;
+            }
         }
     });
 
     const sumDisplay = document.getElementById('articles_sum_display');
     if (sumDisplay) sumDisplay.textContent = formatFCFA(totalSum);
 
-    if (totalSum > 0) {
+    if (totalSum > 0 || rows.length > 0) {
         document.getElementById('montant_input').value = totalSum;
     }
 
-    recalculerFinances();
+    recalculerFinances(sumPartIpm, sumPartPart, rows.length > 0);
 }
 
-function recalculerFinances() {
+function recalculerFinances(overridePartIpm, overridePartPart, hasRows = false) {
     const montant = parseFloat(document.getElementById('montant_input').value) || 0;
     const isSousCouvert = document.getElementById('edit_prestation_sous_couvert')?.checked;
 
     let partIpm = 0;
     let resteCharge = 0;
+    let isFixe = false;
 
     if (isSousCouvert) {
         partIpm = montant;
         resteCharge = 0;
         document.getElementById('calc_taux_badge').textContent = '100% (Sous couvert)';
         document.getElementById('calc_reste_badge').textContent = '0%';
+    } else if (hasRows && overridePartIpm !== undefined && overridePartPart !== undefined) {
+        partIpm = overridePartIpm;
+        resteCharge = overridePartPart;
+
+        const rows = document.querySelectorAll('#articles_tbody tr');
+        rows.forEach(tr => {
+            const idType = parseInt(tr.querySelector('.article-id-type')?.value);
+            const matched = AVAILABLE_ACTES.find(a => a.id === idType);
+            if (matched && parseFloat(matched.part_ipm_reference || 0) > 0) {
+                isFixe = true;
+            }
+        });
+
+        const effectiveTaux = montant > 0 ? (Math.round((partIpm / montant) * 1000) / 10) : 0;
+        const effectiveReste = montant > 0 ? (Math.round((resteCharge / montant) * 1000) / 10) : 0;
+        document.getElementById('calc_taux_badge').textContent = isFixe ? `${effectiveTaux}% (IPM Fixe)` : `${effectiveTaux}%`;
+        document.getElementById('calc_reste_badge').textContent = `${effectiveReste}%`;
     } else {
+        const idType = parseInt(document.querySelector('.article-id-type')?.value);
+        const matched = idType ? AVAILABLE_ACTES.find(a => a.id === idType) : AVAILABLE_ACTES[0];
+        const partIpmRef = matched ? parseFloat(matched.part_ipm_reference || 0) : 0;
         const taux = parseFloat(document.getElementById('taux_input').value) || 0;
-        partIpm = Math.round((montant * taux) / 100);
-        resteCharge = Math.max(0, montant - partIpm);
-        document.getElementById('calc_taux_badge').textContent = taux + '%';
-        document.getElementById('calc_reste_badge').textContent = (100 - taux) + '%';
+
+        if (partIpmRef > 0) {
+            isFixe = true;
+            if (montant < partIpmRef) {
+                partIpm = montant;
+                resteCharge = 0;
+            } else {
+                partIpm = partIpmRef;
+                resteCharge = montant - partIpm;
+            }
+        } else {
+            partIpm = Math.round((montant * taux) / 100);
+            resteCharge = Math.max(0, montant - partIpm);
+        }
+
+        const effectiveTaux = montant > 0 ? (Math.round((partIpm / montant) * 1000) / 10) : taux;
+        const effectiveReste = montant > 0 ? (Math.round((resteCharge / montant) * 1000) / 10) : (100 - taux);
+        document.getElementById('calc_taux_badge').textContent = isFixe ? `${effectiveTaux}% (IPM Fixe)` : `${effectiveTaux}%`;
+        document.getElementById('calc_reste_badge').textContent = `${effectiveReste}%`;
     }
 
     document.getElementById('calc_total_display').textContent = formatFCFA(montant);

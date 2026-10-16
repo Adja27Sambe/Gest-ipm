@@ -68,6 +68,7 @@
                         <th class="py-3 px-3">Mode de Calcul</th>
                         <th class="py-3 px-3 text-center">Taux Couverture</th>
                         <th class="py-3 px-3 text-center">Montant Référentiel</th>
+                        <th class="py-3 px-3 text-center text-primary">Part IPM Réf. (Fixe)</th>
                         <th class="py-3 px-3 text-center">Règle Métier Spécifique</th>
                         <th class="py-3 px-4 text-end">Actions</th>
                     </tr>
@@ -86,8 +87,16 @@
                                     </div>
                                     <div>
                                         <h6 class="mb-0 fw-bold text-dark">{{ $param->typePrestation->libelle ?? 'Acte non défini' }}</h6>
-                                        <div class="small text-muted">
-                                            <span class="badge bg-light text-secondary border px-2 py-0 rounded-pill">{{ $nbTypes }} type(s) d'acte associé(s)</span>
+                                        <div class="small text-muted mt-1">
+                                            @if($param->typeActe)
+                                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-0 rounded-pill">
+                                                    <i class="bi bi-tag-fill me-1"></i>Type : {{ $param->typeActe->libelle }}
+                                                </span>
+                                            @elseif($nbTypes > 0)
+                                                <span class="badge bg-light text-secondary border px-2 py-0 rounded-pill">{{ $nbTypes }} type(s) d'acte associé(s)</span>
+                                            @else
+                                                <span class="text-muted fst-italic">Tous types d'actes</span>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -126,6 +135,20 @@
                                 @endif
                             </td>
                             <td class="px-3 py-3 text-center">
+                                @if($param->part_ipm_reference !== null && (float)$param->part_ipm_reference > 0)
+                                    <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-50 px-3 py-2 rounded-pill fs-6 fw-bold">
+                                        <i class="bi bi-pin-angle-fill me-1"></i>{{ number_format($param->part_ipm_reference, 0, ',', ' ') }} <small>FCFA</small>
+                                    </span>
+                                    <div class="text-muted small mt-1" style="font-size: 0.72rem;">Fixe IPM (Reste au participant)</div>
+                                @elseif($param->type_calcul === 'SOUS_COUVERT')
+                                    <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-pill">100% IPM</span>
+                                @elseif($param->est_exclusion || $param->type_calcul === 'EXCLUSION')
+                                    <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 rounded-pill">0 FCFA</span>
+                                @else
+                                    <span class="text-muted small fst-italic">Selon taux %</span>
+                                @endif
+                            </td>
+                            <td class="px-3 py-3 text-center">
                                 @if($param->montant_forfait)
                                     <span class="badge bg-warning bg-opacity-15 text-dark px-2 py-1 rounded-pill">
                                         Forfait: {{ number_format($param->montant_forfait, 0, ',', ' ') }} F
@@ -161,7 +184,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-shield-x fs-1 text-muted d-block mb-2"></i>
                                 Aucun paramètre de couverture configuré.
                             </td>

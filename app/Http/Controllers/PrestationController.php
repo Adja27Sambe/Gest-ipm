@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Prestation;
 use App\Models\TypePrestation;
+use App\Models\ParametreCouverture;
 use App\Models\Praticien;
 use App\Models\Pharmacie;
 use App\Models\Demande;
@@ -131,7 +132,10 @@ class PrestationController extends Controller
             $validated['reste_a_charge'] = 0.00;
         }
 
-        // Traitement et recalcul des articles et actes avec taux par acte
+        // Pré-charger les paramètres de couverture
+        $parametresByType = ParametreCouverture::all()->keyBy('id_type_prestation');
+
+        // Traitement et recalcul des articles et actes avec taux par acte et part IPM fixe
         if (!empty($validated['details_articles'])) {
             $articles = [];
             $totalArticles = 0;
@@ -166,8 +170,41 @@ class PrestationController extends Controller
 
                 if ($nom !== '' || $pu > 0) {
                     $totalLigne = round($qte * $pu, 2);
-                    $partIpmLigne = $isSousCouvert ? $totalLigne : round($totalLigne * ($taux / 100), 2);
-                    $resteLigne = $isSousCouvert ? 0.00 : max(0, $totalLigne - $partIpmLigne);
+                    $paramLigne = $idType ? ($parametresByType[$idType] ?? null) : null;
+
+                    $typeCalculLigne = $art['type_calcul'] ?? $paramLigne?->type_calcul ?? 'POURCENTAGE';
+                    $isMontantRefAct = ($typeCalculLigne === 'MONTANT_REFERENTIEL')
+                        || ($paramLigne && $paramLigne->type_calcul === 'MONTANT_REFERENTIEL')
+                        || (isset($art['part_ipm_reference']) && is_numeric($art['part_ipm_reference']) && (float)$art['part_ipm_reference'] > 0);
+
+                    // Déterminer la part IPM de référence pour l'acte
+                    $partIpmRef = null;
+                    if ($isMontantRefAct) {
+                        if (isset($art['part_ipm_reference']) && is_numeric($art['part_ipm_reference']) && (float)$art['part_ipm_reference'] > 0) {
+                            $partIpmRef = (float)$art['part_ipm_reference'];
+                        } elseif ($paramLigne && $paramLigne->part_ipm_reference !== null && (float)$paramLigne->part_ipm_reference > 0) {
+                            $partIpmRef = (float)$paramLigne->part_ipm_reference;
+                        } elseif ($paramLigne && $paramLigne->montant_referentiel > 0 && $paramLigne->taux_prise_charge > 0) {
+                            $partIpmRef = round(($paramLigne->montant_referentiel * $paramLigne->taux_prise_charge) / 100, 2);
+                        }
+                    }
+
+                    if ($isSousCouvert) {
+                        $partIpmLigne = $totalLigne;
+                        $resteLigne = 0.00;
+                    } elseif ($partIpmRef !== null && $partIpmRef > 0) {
+                        $partIpmRefTotal = round($partIpmRef * $qte, 2);
+                        if ($totalLigne < $partIpmRefTotal) {
+                            $partIpmLigne = $totalLigne;
+                            $resteLigne = 0.00;
+                        } else {
+                            $partIpmLigne = $partIpmRefTotal;
+                            $resteLigne = round($totalLigne - $partIpmLigne, 2);
+                        }
+                    } else {
+                        $partIpmLigne = round($totalLigne * ($taux / 100), 2);
+                        $resteLigne = max(0, $totalLigne - $partIpmLigne);
+                    }
 
                     $articles[] = [
                         'nom' => $nom,
@@ -175,8 +212,10 @@ class PrestationController extends Controller
                         'montant' => $pu,
                         'taux' => $taux,
                         'id_type_prestation' => $idType,
+                        'part_ipm_reference' => $partIpmRef,
                         'total' => $totalLigne,
                         'part_ipm' => $partIpmLigne,
+                        'part_participant' => $resteLigne,
                         'reste_a_charge' => $resteLigne,
                     ];
                     $totalArticles += $totalLigne;
@@ -195,6 +234,21 @@ class PrestationController extends Controller
             }
         } else {
             $validated['details_articles'] = null;
+            if (!$isSousCouvert && !empty($validated['id_type_prestation'])) {
+                $param = $parametresByType[$validated['id_type_prestation']] ?? null;
+                $partIpmRef = $param?->part_ipm_reference_calculee;
+                if ($partIpmRef && $partIpmRef > 0) {
+                    $montant = (float)($validated['montant'] ?? 0);
+                    if ($montant < $partIpmRef) {
+                        $validated['reste_a_charge'] = 0.00;
+                    } else {
+                        $validated['reste_a_charge'] = round($montant - $partIpmRef, 2);
+                    }
+                    if ($montant > 0) {
+                        $validated['taux_prise_charge'] = round((($montant - $validated['reste_a_charge']) / $montant) * 100, 1);
+                    }
+                }
+            }
         }
 
         // Si id_type_prestation n'est toujours pas défini, déduire intelligemment
@@ -289,7 +343,10 @@ class PrestationController extends Controller
             $validated['reste_a_charge'] = 0.00;
         }
 
-        // Traitement et recalcul des articles / actes avec taux par acte
+        // Pré-charger les paramètres de couverture
+        $parametresByType = ParametreCouverture::all()->keyBy('id_type_prestation');
+
+        // Traitement et recalcul des articles / actes avec taux par acte et part IPM fixe
         if (!empty($validated['details_articles'])) {
             $articles = [];
             $totalArticles = 0;
@@ -323,8 +380,41 @@ class PrestationController extends Controller
 
                 if ($nom !== '' || $pu > 0) {
                     $totalLigne = round($qte * $pu, 2);
-                    $partIpmLigne = $isSousCouvert ? $totalLigne : round($totalLigne * ($taux / 100), 2);
-                    $resteLigne = $isSousCouvert ? 0.00 : max(0, $totalLigne - $partIpmLigne);
+                    $paramLigne = $idType ? ($parametresByType[$idType] ?? null) : null;
+
+                    $typeCalculLigne = $art['type_calcul'] ?? $paramLigne?->type_calcul ?? 'POURCENTAGE';
+                    $isMontantRefAct = ($typeCalculLigne === 'MONTANT_REFERENTIEL')
+                        || ($paramLigne && $paramLigne->type_calcul === 'MONTANT_REFERENTIEL')
+                        || (isset($art['part_ipm_reference']) && is_numeric($art['part_ipm_reference']) && (float)$art['part_ipm_reference'] > 0);
+
+                    // Déterminer la part IPM de référence pour l'acte
+                    $partIpmRef = null;
+                    if ($isMontantRefAct) {
+                        if (isset($art['part_ipm_reference']) && is_numeric($art['part_ipm_reference']) && (float)$art['part_ipm_reference'] > 0) {
+                            $partIpmRef = (float)$art['part_ipm_reference'];
+                        } elseif ($paramLigne && $paramLigne->part_ipm_reference !== null && (float)$paramLigne->part_ipm_reference > 0) {
+                            $partIpmRef = (float)$paramLigne->part_ipm_reference;
+                        } elseif ($paramLigne && $paramLigne->montant_referentiel > 0 && $paramLigne->taux_prise_charge > 0) {
+                            $partIpmRef = round(($paramLigne->montant_referentiel * $paramLigne->taux_prise_charge) / 100, 2);
+                        }
+                    }
+
+                    if ($isSousCouvert) {
+                        $partIpmLigne = $totalLigne;
+                        $resteLigne = 0.00;
+                    } elseif ($partIpmRef !== null && $partIpmRef > 0) {
+                        $partIpmRefTotal = round($partIpmRef * $qte, 2);
+                        if ($totalLigne < $partIpmRefTotal) {
+                            $partIpmLigne = $totalLigne;
+                            $resteLigne = 0.00;
+                        } else {
+                            $partIpmLigne = $partIpmRefTotal;
+                            $resteLigne = round($totalLigne - $partIpmLigne, 2);
+                        }
+                    } else {
+                        $partIpmLigne = round($totalLigne * ($taux / 100), 2);
+                        $resteLigne = max(0, $totalLigne - $partIpmLigne);
+                    }
 
                     $articles[] = [
                         'nom' => $nom,
@@ -332,8 +422,10 @@ class PrestationController extends Controller
                         'montant' => $pu,
                         'taux' => $taux,
                         'id_type_prestation' => $idType,
+                        'part_ipm_reference' => $partIpmRef,
                         'total' => $totalLigne,
                         'part_ipm' => $partIpmLigne,
+                        'part_participant' => $resteLigne,
                         'reste_a_charge' => $resteLigne,
                     ];
                     $totalArticles += $totalLigne;
@@ -352,6 +444,22 @@ class PrestationController extends Controller
             }
         } else {
             $validated['details_articles'] = null;
+            $targetType = !empty($validated['id_type_prestation']) ? $validated['id_type_prestation'] : $prestation->id_type_prestation;
+            if (!$isSousCouvert && !empty($targetType)) {
+                $param = $parametresByType[$targetType] ?? null;
+                $partIpmRef = $param?->part_ipm_reference_calculee;
+                if ($partIpmRef && $partIpmRef > 0) {
+                    $montant = (float)($validated['montant'] ?? $prestation->montant ?? 0);
+                    if ($montant < $partIpmRef) {
+                        $validated['reste_a_charge'] = 0.00;
+                    } else {
+                        $validated['reste_a_charge'] = round($montant - $partIpmRef, 2);
+                    }
+                    if ($montant > 0) {
+                        $validated['taux_prise_charge'] = round((($montant - $validated['reste_a_charge']) / $montant) * 100, 1);
+                    }
+                }
+            }
         }
 
         if (empty($validated['id_type_prestation'])) {

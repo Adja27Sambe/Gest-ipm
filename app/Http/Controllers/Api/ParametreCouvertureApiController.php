@@ -138,36 +138,45 @@ class ParametreCouvertureApiController extends Controller
         if ($parametre->est_exclusion) {
             $montantPrisEnCharge = 0;
         } else {
-            switch ($typeCalcul) {
-                case 'TARIF_JOURNALIER': 
-                    $tarifPlafond = $parametre->tarif_journalier ?? 20000;
-                    $montantPrisEnCharge = ($montant <= $tarifPlafond) ? $montant : $tarifPlafond;
-                    break;
-                    
-                case 'PLAFOND':
-                    $plafond = $parametre->montant_plafond ?? 30000;
-                    $montantPrisEnCharge = ($montant <= $plafond) ? $montant : $plafond;
-                    break;
-                    
-                case 'FORFAIT':
-                    $forfait = $parametre->montant_forfait ?? 50000;
-                    $montantPrisEnCharge = ($montant <= $forfait) ? $montant : $forfait;
-                    break;
-                    
-                case '100_PERCENT_PARTICIPANT':
-                case 'EXCLUSION':
-                    $montantPrisEnCharge = 0;
-                    break;
-                    
-                case 'POURCENTAGE':
-                default:
-                    $tauxApplique = (float) $parametre->taux_prise_charge;
-                    $montantPrisEnCharge = $montant * ($tauxApplique / 100);
-                    // Application de l'ancien plafond par acte si défini (compatibilité)
-                    if ($parametre->plafond_par_acte !== null && $montantPrisEnCharge > $parametre->plafond_par_acte) {
-                        $montantPrisEnCharge = (float) $parametre->plafond_par_acte;
-                    }
-                    break;
+            $partIpmRef = $parametre->part_ipm_reference_calculee;
+            if ($typeCalcul === 'MONTANT_REFERENTIEL' || ($partIpmRef && $partIpmRef > 0)) {
+                $montantPrisEnCharge = ($montant < $partIpmRef) ? $montant : $partIpmRef;
+            } else {
+                switch ($typeCalcul) {
+                    case 'SOUS_COUVERT':
+                        $montantPrisEnCharge = $montant;
+                        break;
+
+                    case 'TARIF_JOURNALIER': 
+                        $tarifPlafond = $parametre->tarif_journalier ?? 20000;
+                        $montantPrisEnCharge = ($montant <= $tarifPlafond) ? $montant : $tarifPlafond;
+                        break;
+                        
+                    case 'PLAFOND':
+                        $plafond = $parametre->montant_plafond ?? 30000;
+                        $montantPrisEnCharge = ($montant <= $plafond) ? $montant : $plafond;
+                        break;
+                        
+                    case 'FORFAIT':
+                        $forfait = $parametre->montant_forfait ?? 50000;
+                        $montantPrisEnCharge = ($montant <= $forfait) ? $montant : $forfait;
+                        break;
+                        
+                    case '100_PERCENT_PARTICIPANT':
+                    case 'EXCLUSION':
+                        $montantPrisEnCharge = 0;
+                        break;
+                        
+                    case 'POURCENTAGE':
+                    default:
+                        $tauxApplique = (float) $parametre->taux_prise_charge;
+                        $montantPrisEnCharge = $montant * ($tauxApplique / 100);
+                        // Application de l'ancien plafond par acte si défini (compatibilité)
+                        if ($parametre->plafond_par_acte !== null && $montantPrisEnCharge > $parametre->plafond_par_acte) {
+                            $montantPrisEnCharge = (float) $parametre->plafond_par_acte;
+                        }
+                        break;
+                }
             }
         }
 

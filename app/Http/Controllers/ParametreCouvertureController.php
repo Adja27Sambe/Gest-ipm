@@ -14,7 +14,7 @@ class ParametreCouvertureController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 15);
-        $query = ParametreCouverture::with(['typePrestation.typesActes']);
+        $query = ParametreCouverture::with(['typePrestation.typesActes', 'typeActe']);
 
         if ($request->filled('search')) {
             $search = trim($request->search);
@@ -37,6 +37,7 @@ class ParametreCouvertureController extends Controller
         $actesConfigures = ParametreCouverture::pluck('id_type_prestation');
         $typesPrestation = TypePrestation::whereNotIn('id_type_prestation', $actesConfigures)
             ->where('statut', 'actif')
+            ->with('typesActes')
             ->orderBy('libelle')
             ->get();
 
@@ -50,9 +51,11 @@ class ParametreCouvertureController extends Controller
     {
         $validated = $request->validate([
             'id_type_prestation' => 'required|exists:type_prestation,id_type_prestation|unique:parametre_couverture,id_type_prestation',
+            'id_type_acte' => 'nullable|exists:type_acte,id_type_acte',
             'type_calcul' => 'required|string|in:POURCENTAGE,MONTANT_REFERENTIEL,FORFAIT,TARIF_JOURNALIER,EXCLUSION,100_PERCENT_PARTICIPANT,SOUS_COUVERT',
             'taux_prise_charge' => 'nullable|numeric|min:0|max:100',
             'montant_referentiel' => 'nullable|numeric|min:0',
+            'part_ipm_reference' => 'nullable|numeric|min:0',
             'montant_forfait' => 'nullable|numeric|min:0',
             'tarif_journalier' => 'nullable|numeric|min:0',
             'montant_plafond' => 'nullable|numeric|min:0',
@@ -62,8 +65,14 @@ class ParametreCouvertureController extends Controller
             'motif_exclusion' => 'nullable|string|max:255',
         ]);
 
-        if (!empty($validated['montant_referentiel'])) {
-            $validated['ticket_moderateur'] = $validated['montant_referentiel'];
+        // Calcul automatique de la Part IPM de référence = Montant référentiel × Taux IPM
+        if (!empty($validated['montant_referentiel']) && isset($validated['taux_prise_charge'])) {
+            $taux = (float)$validated['taux_prise_charge'];
+            $ref = (float)$validated['montant_referentiel'];
+            $validated['part_ipm_reference'] = round(($ref * $taux) / 100, 2);
+            $validated['ticket_moderateur'] = $validated['part_ipm_reference'];
+        } elseif (!empty($validated['part_ipm_reference'])) {
+            $validated['ticket_moderateur'] = $validated['part_ipm_reference'];
         }
 
         if ($validated['type_calcul'] === 'SOUS_COUVERT') {
@@ -84,7 +93,7 @@ class ParametreCouvertureController extends Controller
      */
     public function edit(ParametreCouverture $parametres_couverture)
     {
-        $parametres_couverture->load('typePrestation.typesActes');
+        $parametres_couverture->load(['typePrestation.typesActes', 'typeActe']);
         return view('parametres-couverture.edit', compact('parametres_couverture'));
     }
 
@@ -94,9 +103,11 @@ class ParametreCouvertureController extends Controller
     public function update(Request $request, ParametreCouverture $parametres_couverture)
     {
         $validated = $request->validate([
+            'id_type_acte' => 'nullable|exists:type_acte,id_type_acte',
             'type_calcul' => 'required|string|in:POURCENTAGE,MONTANT_REFERENTIEL,FORFAIT,TARIF_JOURNALIER,EXCLUSION,100_PERCENT_PARTICIPANT,SOUS_COUVERT',
             'taux_prise_charge' => 'nullable|numeric|min:0|max:100',
             'montant_referentiel' => 'nullable|numeric|min:0',
+            'part_ipm_reference' => 'nullable|numeric|min:0',
             'montant_forfait' => 'nullable|numeric|min:0',
             'tarif_journalier' => 'nullable|numeric|min:0',
             'montant_plafond' => 'nullable|numeric|min:0',
@@ -106,8 +117,14 @@ class ParametreCouvertureController extends Controller
             'motif_exclusion' => 'nullable|string|max:255',
         ]);
 
-        if (array_key_exists('montant_referentiel', $validated)) {
-            $validated['ticket_moderateur'] = $validated['montant_referentiel'];
+        // Calcul automatique de la Part IPM de référence = Montant référentiel × Taux IPM
+        if (!empty($validated['montant_referentiel']) && isset($validated['taux_prise_charge'])) {
+            $taux = (float)$validated['taux_prise_charge'];
+            $ref = (float)$validated['montant_referentiel'];
+            $validated['part_ipm_reference'] = round(($ref * $taux) / 100, 2);
+            $validated['ticket_moderateur'] = $validated['part_ipm_reference'];
+        } elseif (!empty($validated['part_ipm_reference'])) {
+            $validated['ticket_moderateur'] = $validated['part_ipm_reference'];
         }
 
         if ($validated['type_calcul'] === 'SOUS_COUVERT') {

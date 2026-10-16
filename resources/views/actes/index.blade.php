@@ -138,7 +138,11 @@
                                             Règle spécifique
                                         @endif
                                     </strong>
-                                    @if($couverture->montant_referentiel)
+                                    @if($couverture->part_ipm_reference)
+                                        <span class="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 ms-1">
+                                            Fixe IPM: {{ number_format($couverture->part_ipm_reference, 0, ',', ' ') }} F
+                                        </span>
+                                    @elseif($couverture->montant_referentiel)
                                         <span class="text-muted small ms-1">(Réf: {{ number_format($couverture->montant_referentiel, 0, ',', ' ') }} F)</span>
                                     @elseif($couverture->montant_forfait)
                                         <span class="text-muted small ms-1">(Forfait: {{ number_format($couverture->montant_forfait, 0, ',', ' ') }} F)</span>

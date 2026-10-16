@@ -393,8 +393,8 @@
                                                 <th style="width: 120px;" class="text-center bg-primary bg-opacity-10 text-primary fw-bold col-quantite">
                                                     <i class="bi bi-stack me-1"></i>Quantité <span class="text-danger">*</span>
                                                 </th>
-                                                <th style="width: 210px;">P.U (FCFA) <span class="text-danger">*</span></th>
-                                                <th class="text-end pe-2" style="width: 135px;">Total Ligne</th>
+                                                <th style="width: 190px;">P.U (FCFA) <span class="text-danger">*</span></th>
+                                                <th class="text-end pe-2" style="width: 180px;">Total & Répartition</th>
                                                 <th style="width: 35px;"></th>
                                             </tr>
                                         </thead>
@@ -511,13 +511,20 @@
 </div>
 
 <script>
-// Catalogue des actes disponibles avec leurs taux et tarifs de référence
+// Catalogue des actes disponibles avec leurs taux, montants référentiels et parts IPM de référence
 const AVAILABLE_ACTES = {!! json_encode($typesPrestation->map(function($t) {
+    $param = $t->parametreCouverture;
+    $ref = (float)($param->montant_referentiel ?? $param->ticket_moderateur ?? 0);
+    $taux = (float)($param->taux_prise_charge ?? 75);
+    $partIpmRef = (float)($param->part_ipm_reference ?? ($ref > 0 ? round(($ref * $taux) / 100, 2) : 0));
     return [
         'id' => $t->id_type_prestation,
         'libelle' => $t->libelle,
-        'taux' => (float)($t->parametreCouverture->taux_prise_charge ?? 75),
-        'pu' => (float)($t->parametreCouverture->plafond_par_acte ?? 0),
+        'taux' => $taux,
+        'montant_referentiel' => $ref,
+        'part_ipm_reference' => $partIpmRef,
+        'type_calcul' => $param->type_calcul ?? ($ref > 0 ? 'MONTANT_REFERENTIEL' : 'POURCENTAGE'),
+        'pu' => (float)($ref > 0 ? $ref : ($param->plafond_par_acte ?? 0)),
         'types_actes' => $t->typesActes ? $t->typesActes->pluck('libelle')->toArray() : [],
     ];
 })) !!};
@@ -720,9 +727,9 @@ function handleModalActeSelect(selectEl) {
     const acteLibelle = selectedOpt.value;
     const acteTaux = parseFloat(selectedOpt.getAttribute('data-taux'));
     const acteId = parseInt(selectedOpt.getAttribute('data-id'));
+    const matched = AVAILABLE_ACTES.find(a => a.id === acteId);
 
     // Mettre à jour la datalist des types d'actes pour cette ligne
-    const matched = AVAILABLE_ACTES.find(a => a.id === acteId);
     const datalist = tr.querySelector('.modal-art-datalist');
     if (datalist && matched && matched.types_actes) {
         datalist.innerHTML = matched.types_actes.map(ta => `<option value="${escapeHtml(ta)}"></option>`).join('');
@@ -737,6 +744,12 @@ function handleModalActeSelect(selectEl) {
         setTimeout(() => {
             nomInput.style.backgroundColor = '';
         }, 400);
+    }
+
+    // Auto-remplir le prix unitaire si l'acte a un montant référentiel et que le champ est vide ou à 0
+    const puInput = tr.querySelector('.modal-art-pu');
+    if (puInput && (!puInput.value || parseFloat(puInput.value) === 0) && matched && matched.montant_referentiel > 0) {
+        puInput.value = matched.montant_referentiel;
     }
 
     // Auto-remplir le champ Taux (%) de la prestation
@@ -754,10 +767,20 @@ function handleModalActeSelect(selectEl) {
         }, 500);
     }
 
-    // Mettre à jour l'ID du type de prestation
+    // Mettre à jour les champs cachés de l'acte
     const idTypeInput = tr.querySelector('.modal-art-id-type');
     if (idTypeInput && acteId) {
         idTypeInput.value = acteId;
+    }
+
+    const partIpmRefInput = tr.querySelector('.modal-art-part-ipm-ref');
+    if (partIpmRefInput && matched) {
+        partIpmRefInput.value = matched.part_ipm_reference || 0;
+    }
+
+    const montantRefInput = tr.querySelector('.modal-art-montant-ref');
+    if (montantRefInput && matched) {
+        montantRefInput.value = matched.montant_referentiel || 0;
     }
 
     recalculerModalArticles();
@@ -792,9 +815,12 @@ function addModalArticleRow(data = {}) {
 
     const montantVal = (data.montant !== undefined && data.montant !== null && data.montant !== '')
         ? data.montant
-        : 0;
+        : (matchedActe && matchedActe.montant_referentiel ? matchedActe.montant_referentiel : 0);
 
     const idTypeVal = data.id_type_prestation || (matchedActe ? matchedActe.id : '');
+    const partIpmRefVal = (matchedActe && matchedActe.part_ipm_reference) ? matchedActe.part_ipm_reference : 0;
+    const montantRefVal = (matchedActe && matchedActe.montant_referentiel) ? matchedActe.montant_referentiel : 0;
+
     const tr = document.createElement('tr');
     const datalistId = `datalist_types_actes_${rowIndex}_${Date.now()}`;
     const initialTypesActes = (matchedActe && matchedActe.types_actes) ? matchedActe.types_actes : [];
@@ -802,7 +828,8 @@ function addModalArticleRow(data = {}) {
 
     const optionsHtml = AVAILABLE_ACTES.map(a => {
         const isSelected = matchedActe && matchedActe.id === a.id;
-        return `<option value="${escapeHtml(a.libelle)}" data-taux="${a.taux}" data-id="${a.id}" ${isSelected ? 'selected' : ''}>${escapeHtml(a.libelle)}</option>`;
+        const refBadge = a.part_ipm_reference > 0 ? ` (Fixe IPM: ${new Intl.NumberFormat('fr-FR').format(a.part_ipm_reference)} F)` : '';
+        return `<option value="${escapeHtml(a.libelle)}" data-taux="${a.taux}" data-id="${a.id}" data-ref="${a.montant_referentiel}" data-part-ipm-ref="${a.part_ipm_reference}" ${isSelected ? 'selected' : ''}>${escapeHtml(a.libelle)}${refBadge}</option>`;
     }).join('');
 
     tr.innerHTML = `
@@ -829,6 +856,14 @@ function addModalArticleRow(data = {}) {
                        name="details_articles[${rowIndex}][id_type_prestation]" 
                        class="modal-art-id-type" 
                        value="${idTypeVal}">
+                <input type="hidden" 
+                       name="details_articles[${rowIndex}][part_ipm_reference]" 
+                       class="modal-art-part-ipm-ref" 
+                       value="${partIpmRefVal}">
+                <input type="hidden" 
+                       name="details_articles[${rowIndex}][montant_referentiel]" 
+                       class="modal-art-montant-ref" 
+                       value="${montantRefVal}">
             </div>
         </td>
         <td class="text-center col-quantite" style="width: 120px; ${showQte ? '' : 'display: none;'}">
@@ -842,13 +877,16 @@ function addModalArticleRow(data = {}) {
                    required 
                    oninput="recalculerModalArticles()">
         </td>
-        <td style="width: 210px;">
+        <td style="width: 190px;">
             <div class="input-group input-group-sm">
                 <input type="number" min="0" step="1" name="details_articles[${rowIndex}][montant]" class="form-control form-control-sm text-end modal-art-pu fw-bold fs-6" placeholder="0" value="${montantVal}" required oninput="recalculerModalArticles()">
                 <span class="input-group-text bg-light text-muted fw-semibold">FCFA</span>
             </div>
         </td>
-        <td class="text-end pe-2 fw-bold text-dark modal-art-total">0 FCFA</td>
+        <td class="text-end pe-2" style="width: 180px;">
+            <div class="fw-bold text-dark modal-art-total">0 F</div>
+            <div class="small modal-art-breakdown" style="font-size: 0.74rem;">IPM: 0 F | Part: 0 F</div>
+        </td>
         <td class="text-center">
             <button type="button" class="btn btn-sm btn-link text-danger p-0 text-decoration-none" onclick="removeModalArticleRow(this)" title="Supprimer">
                 <i class="bi bi-x-circle"></i>
@@ -878,6 +916,12 @@ function reindexModalArticles() {
         const idType = tr.querySelector('.modal-art-id-type');
         if (idType) idType.name = `details_articles[${idx}][id_type_prestation]`;
 
+        const partRef = tr.querySelector('.modal-art-part-ipm-ref');
+        if (partRef) partRef.name = `details_articles[${idx}][part_ipm_reference]`;
+
+        const mRef = tr.querySelector('.modal-art-montant-ref');
+        if (mRef) mRef.name = `details_articles[${idx}][montant_referentiel]`;
+
         const qte = tr.querySelector('.modal-art-qte');
         if (qte) qte.name = `details_articles[${idx}][quantite]`;
 
@@ -888,8 +932,11 @@ function reindexModalArticles() {
 
 function recalculerModalArticles() {
     let sumTotal = 0;
+    let sumPartIpm = 0;
+    let sumPartPart = 0;
     const showQte = isQuantiteVisible();
     const rows = document.querySelectorAll('#modal_articles_tbody tr');
+    const isSousCouvert = document.getElementById('modal_prestation_sous_couvert')?.checked;
     
     rows.forEach(tr => {
         const qte = showQte ? (parseFloat(tr.querySelector('.modal-art-qte')?.value) || 1) : 1;
@@ -897,27 +944,71 @@ function recalculerModalArticles() {
         
         const totalLigne = Math.round(qte * pu);
         sumTotal += totalLigne;
+
+        const idType = parseInt(tr.querySelector('.modal-art-id-type')?.value);
+        const matched = AVAILABLE_ACTES.find(a => a.id === idType);
+        const partIpmRefHidden = parseFloat(tr.querySelector('.modal-art-part-ipm-ref')?.value || 0);
+        const partIpmRef = matched ? parseFloat(matched.part_ipm_reference || 0) : partIpmRefHidden;
+        const taux = matched ? parseFloat(matched.taux || 75) : (parseFloat(document.getElementById('modal_taux')?.value) || 75);
+
+        let partIpmLigne = 0;
+        let partPartLigne = totalLigne;
+        let isFixe = false;
+
+        if (isSousCouvert) {
+            partIpmLigne = totalLigne;
+            partPartLigne = 0;
+        } else if (partIpmRef > 0) {
+            isFixe = true;
+            const partIpmRefTotal = Math.round(partIpmRef * qte);
+            if (totalLigne < partIpmRefTotal) {
+                // Règle de sécurité : si montant facturé < Part IPM de référence
+                partIpmLigne = totalLigne;
+                partPartLigne = 0;
+            } else {
+                partIpmLigne = partIpmRefTotal;
+                partPartLigne = totalLigne - partIpmLigne;
+            }
+        } else {
+            partIpmLigne = Math.round((totalLigne * taux) / 100);
+            partPartLigne = Math.max(0, totalLigne - partIpmLigne);
+        }
+
+        sumPartIpm += partIpmLigne;
+        sumPartPart += partPartLigne;
         
-        const disp = tr.querySelector('.modal-art-total');
-        if (disp) disp.textContent = new Intl.NumberFormat('fr-FR').format(totalLigne) + ' F';
+        const dispTotal = tr.querySelector('.modal-art-total');
+        if (dispTotal) dispTotal.textContent = new Intl.NumberFormat('fr-FR').format(totalLigne) + ' F';
+
+        const dispBreakdown = tr.querySelector('.modal-art-breakdown');
+        if (dispBreakdown) {
+            if (isSousCouvert) {
+                dispBreakdown.innerHTML = `<span class="badge bg-success bg-opacity-10 text-success py-0 px-1">100% IPM</span>`;
+            } else if (isFixe) {
+                dispBreakdown.innerHTML = `<span class="text-primary fw-bold" title="Part IPM de référence fixe">IPM: ${new Intl.NumberFormat('fr-FR').format(partIpmLigne)} F</span> <span class="text-danger fw-semibold">| Part: ${new Intl.NumberFormat('fr-FR').format(partPartLigne)} F</span>`;
+            } else {
+                dispBreakdown.innerHTML = `<span class="text-success">IPM: ${new Intl.NumberFormat('fr-FR').format(partIpmLigne)} F</span> <span class="text-danger">| Part: ${new Intl.NumberFormat('fr-FR').format(partPartLigne)} F</span>`;
+            }
+        }
     });
 
     const display = document.getElementById('modal_articles_total_display');
     if (display) display.textContent = new Intl.NumberFormat('fr-FR').format(sumTotal) + ' FCFA';
 
-    if (sumTotal > 0) {
+    if (sumTotal > 0 || rows.length > 0) {
         document.getElementById('modal_montant').value = sumTotal;
     }
-    recalculerModalFinances();
+    recalculerModalFinances(sumPartIpm, sumPartPart, rows.length > 0);
 }
 
-function recalculerModalFinances() {
+function recalculerModalFinances(overridePartIpm, overridePartPart, hasRows = false) {
     const montant = parseFloat(document.getElementById('modal_montant').value) || 0;
     const isSousCouvert = document.getElementById('modal_prestation_sous_couvert')?.checked;
     const statusBadge = document.getElementById('modal_calc_status');
 
     let partIpm = 0;
     let reste = 0;
+    let isFixe = false;
 
     if (isSousCouvert) {
         partIpm = montant;
@@ -926,13 +1017,58 @@ function recalculerModalFinances() {
             statusBadge.className = 'badge bg-primary bg-opacity-15 text-primary fw-bold px-3 py-2 rounded-pill';
             statusBadge.innerHTML = '<i class="bi bi-shield-fill-check me-1"></i>SOUS COUVERT (100% IPM)';
         }
-    } else {
-        const taux = parseFloat(document.getElementById('modal_taux').value) || 0;
-        partIpm = Math.round((montant * taux) / 100);
-        reste = Math.max(0, montant - partIpm);
+    } else if (hasRows && overridePartIpm !== undefined && overridePartPart !== undefined) {
+        partIpm = overridePartIpm;
+        reste = overridePartPart;
+        
+        // Détecter si un des actes des lignes a une part IPM fixe
+        const rows = document.querySelectorAll('#modal_articles_tbody tr');
+        rows.forEach(tr => {
+            const idType = parseInt(tr.querySelector('.modal-art-id-type')?.value);
+            const matched = AVAILABLE_ACTES.find(a => a.id === idType);
+            if (matched && parseFloat(matched.part_ipm_reference || 0) > 0) {
+                isFixe = true;
+            }
+        });
+
         if (statusBadge) {
-            statusBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-3 py-2 rounded-pill';
-            statusBadge.innerHTML = '<i class="bi bi-shield-check me-1"></i>Prise en charge active';
+            if (isFixe) {
+                statusBadge.className = 'badge bg-primary bg-opacity-15 text-primary fw-bold px-3 py-2 rounded-pill';
+                statusBadge.innerHTML = '<i class="bi bi-pin-angle-fill me-1"></i>Part IPM Fixe (Reste au participant)';
+            } else {
+                statusBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-3 py-2 rounded-pill';
+                statusBadge.innerHTML = '<i class="bi bi-shield-check me-1"></i>Prise en charge active';
+            }
+        }
+    } else {
+        // Prestation globale sans lignes d'articles
+        const firstActeId = parseInt(document.querySelector('.modal-art-id-type')?.value);
+        const matched = firstActeId ? AVAILABLE_ACTES.find(a => a.id === firstActeId) : AVAILABLE_ACTES[0];
+        const partIpmRef = matched ? parseFloat(matched.part_ipm_reference || 0) : 0;
+        const taux = parseFloat(document.getElementById('modal_taux').value) || 0;
+
+        if (partIpmRef > 0) {
+            isFixe = true;
+            if (montant < partIpmRef) {
+                partIpm = montant;
+                reste = 0;
+            } else {
+                partIpm = partIpmRef;
+                reste = montant - partIpm;
+            }
+        } else {
+            partIpm = Math.round((montant * taux) / 100);
+            reste = Math.max(0, montant - partIpm);
+        }
+
+        if (statusBadge) {
+            if (isFixe) {
+                statusBadge.className = 'badge bg-primary bg-opacity-15 text-primary fw-bold px-3 py-2 rounded-pill';
+                statusBadge.innerHTML = '<i class="bi bi-pin-angle-fill me-1"></i>Part IPM Fixe (Reste au participant)';
+            } else {
+                statusBadge.className = 'badge bg-success bg-opacity-10 text-success fw-bold px-3 py-2 rounded-pill';
+                statusBadge.innerHTML = '<i class="bi bi-shield-check me-1"></i>Prise en charge active';
+            }
         }
     }
 

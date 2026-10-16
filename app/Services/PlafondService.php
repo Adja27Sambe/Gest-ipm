@@ -29,7 +29,14 @@ class PlafondService
                 'id_type_prestation' => "Impossible d'enregistrer la prestation : aucun paramètre de couverture n'est configuré pour ce type de prestation."
             ]);
         }
-
+        // 1.5. Vérification du plafond par acte (pour les actes plafonnés non soumis à un montant référentiel)
+        if ($parametre->type_calcul !== 'MONTANT_REFERENTIEL' && $parametre->plafond_par_acte !== null && $montant > $parametre->plafond_par_acte) {
+            $depassement = $montant - $parametre->plafond_par_acte;
+            throw new PlafondDepasseException(
+                "Le montant de l'acte (" . number_format($montant, 0, ',', ' ') . " FCFA) dépasse le plafond autorisé par acte (" . number_format($parametre->plafond_par_acte, 0, ',', ' ') . " FCFA).",
+                $depassement
+            );
+        }
 
         // 2. Vérification du plafond annuel
         if ($parametre->plafond_annuel !== null) {

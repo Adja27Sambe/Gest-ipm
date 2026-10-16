@@ -49,7 +49,7 @@ class ActesEtTauxCouvertureTest extends TestCase
             $this->assertNotNull($param, "Le paramètre de couverture pour '{$libelle}' doit exister.");
 
             if (isset($rules['taux'])) {
-                $this->assertEquals($rules['taux'], (string)$param->taux_prise_charge);
+                $this->assertEquals((float)$rules['taux'], (float)$param->taux_prise_charge);
             }
             if (isset($rules['ticket'])) {
                 $this->assertEquals($rules['ticket'], (string)$param->ticket_moderateur);
